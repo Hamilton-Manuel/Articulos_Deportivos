@@ -49,6 +49,9 @@ db.pedidos                = require("./pedidos.model.js")(sequelize, Sequelize);
 db.detalle_pedido         = require("./detalle_pedido.model.js")(sequelize, Sequelize);
 db.pagos                  = require("./pagos.model.js")(sequelize, Sequelize);
 
+// === Bitácora centralizada ===
+db.bitacora_auditoria     = require("./bitacora_auditoria.model.js")(sequelize, Sequelize);
+
 // === Asociaciones ===
 // Usuario 1–1 Cliente / Empleado
 db.usuarios.hasOne(db.clientes,  { foreignKey: "usuario_id" });
@@ -84,5 +87,9 @@ db.detalle_pedido.belongsTo(db.productos, { foreignKey: "producto_id" });
 // Pedido 1–N Pagos
 db.pedidos.hasMany(db.pagos, { foreignKey: "pedido_id", onDelete: "CASCADE" });
 db.pagos.belongsTo(db.pedidos, { foreignKey: "pedido_id" });
+
+// === Inicializar auditoría (adjunta hooks a cada modelo) ===
+const { iniciarAuditoria } = require("./iniciarAuditoria");
+iniciarAuditoria(db);
 
 module.exports = db;

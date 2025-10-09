@@ -17,6 +17,10 @@ app.use(bodyParser.json());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// === Auditoría: contexto por solicitud (actor, ip, agente, id_solicitud)
+const contextoAuditoria = require("./app/middleware/contextoAuditoria");
+app.use(contextoAuditoria); 
+
 const db = require("./app/models/index.js");
 
 //db.sequelize.sync({ force: true }); //para eliminar todas la tablas y crear tablas nuevas en la base de datos
@@ -29,7 +33,7 @@ app.get("/", (req, res) => {
 });
 
 require("./app/routes/cine.routes.js")(app);
-// ... arriba stays igual
+
 require("./app/routes/usuarios.routes.js")(app);
 require("./app/routes/clientes.routes.js")(app);
 require("./app/routes/empleados.routes.js")(app);

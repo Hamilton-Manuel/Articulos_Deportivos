@@ -8,19 +8,19 @@ exports.create = (req, res) => {
     return res.status(400).send({ message: "El nombre es obligatorio." });
   }
   const { nombre, contacto, telefono, correo, direccion } = req.body;
-  Proveedor.create({ nombre, contacto, telefono, correo, direccion })
+  Proveedor.create({ nombre, contacto, telefono, correo, direccion },{req})
     .then(data => res.status(201).send(data))
     .catch(err => res.status(500).send({ message: err.message }));
 };
 
-// Read all
+// buscar todos
 exports.findAll = (_req, res) => {
   Proveedor.findAll()
     .then(data => res.send(data))
     .catch(err => res.status(500).send({ message: err.message }));
 };
 
-// Read one
+// buscar por id
 exports.findOne = (req, res) => {
   const id = req.params.id;
   Proveedor.findByPk(id)
@@ -31,7 +31,7 @@ exports.findOne = (req, res) => {
 // Update
 exports.update = (req, res) => {
   const id = req.params.id;
-  Proveedor.update(req.body, { where: { id } })
+  Proveedor.update(req.body, { where: { id }, individualHooks: true, req })
     .then(([count]) => count == 1
       ? res.send({ message: "Proveedor actualizado." })
       : res.status(404).send({ message: `No se pudo actualizar el proveedor con id=${id}.` })
@@ -42,7 +42,7 @@ exports.update = (req, res) => {
 // Delete
 exports.delete = (req, res) => {
   const id = req.params.id;
-  Proveedor.destroy({ where: { id } })
+  Proveedor.destroy({ where: { id }, individualHooks: true, req })
     .then(count => count == 1
       ? res.status(200).send({ message: `Proveedor id=${id} eliminado.` })
       : res.status(404).send({ message: `No se pudo eliminar el proveedor con id=${id}.` })
@@ -52,16 +52,32 @@ exports.delete = (req, res) => {
 
 // Delete all
 exports.deleteAll = (_req, res) => {
-  Proveedor.destroy({ where: {}, truncate: false })
+  Proveedor.destroy({ where: {}, truncate: false, individualHooks: true, req })
     .then(nums => res.send({ message: `${nums} proveedores eliminados.` }))
     .catch(err => res.status(500).send({ message: err.message }));
 };
 
-// Extra: buscar por nombre
-exports.findByNombre = (req, res) => {
-  const nombre = req.params.nombre;
-  const operador = Op.iLike || Op.like;
-  Proveedor.findAll({ where: { nombre: { [operador]: `%${nombre}%` } } })
-    .then(data => data?.length ? res.send(data) : res.status(404).send({ message: "Sin resultados." }))
-    .catch(err => res.status(500).send({ message: err.message }));
+// Extra: buscar por nombre (solo columna `nombre`)
+exports.findByNombre = async (req, res) => {
+  const { Op } = db.Sequelize;
+
+  // Normaliza entrada
+  const raw = (req.params.nombre || "").trim();
+  if (!raw) return res.status(400).json({ message: "Parámetro nombre vacío." });
+
+  try {
+    const filas = await Proveedor.findAll({
+      where: {
+        nombre: { [Op.iLike]: `%${raw}%` }   // Postgres case-insensitive
+      },
+      attributes: ["id", "nombre", "contacto", "correo", "telefono"],
+      limit: 10,
+      order: [["nombre", "ASC"]]
+    });
+
+    if (!filas.length) return res.status(404).json({ message: "Sin resultados." });
+    res.json(filas);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

@@ -9,7 +9,7 @@ module.exports = app => {
   router.get("/:id", proveedores.findOne);
   router.put("/update/:id", proveedores.update);
   router.delete("/delete/:id", proveedores.delete);
-  router.delete("/delete", proveedores.deleteAll);
+  //router.delete("/delete", proveedores.deleteAll);
 
   app.use("/api/proveedores", router);
 };

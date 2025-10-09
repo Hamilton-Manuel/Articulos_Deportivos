@@ -10,19 +10,19 @@ exports.create = (req, res) => {
   }
 
   const item = { correo, hash_contrasena, nombre_completo, rol, activo };
-  Usuario.create(item)
+  Usuario.create(item,{ req })
     .then(data => res.status(201).send(data))
     .catch(err => res.status(500).send({ message: err.message }));
 };
 
-// Read all
+// buscar todos
 exports.findAll = (_req, res) => {
   Usuario.findAll()
     .then(data => res.send(data))
     .catch(err => res.status(500).send({ message: err.message }));
 };
 
-// Read one
+// buscar por id
 exports.findOne = (req, res) => {
   const id = req.params.id;
   Usuario.findByPk(id)
@@ -33,7 +33,7 @@ exports.findOne = (req, res) => {
 // Update
 exports.update = (req, res) => {
   const id = req.params.id;
-  Usuario.update(req.body, { where: { id } })
+  Usuario.update(req.body, { where: { id },individualHooks: true, req  })
     .then(([count]) => count == 1
       ? res.send({ message: "Usuario actualizado." })
       : res.status(404).send({ message: `No se pudo actualizar el usuario con id=${id}.` })
@@ -44,7 +44,7 @@ exports.update = (req, res) => {
 // Delete
 exports.delete = (req, res) => {
   const id = req.params.id;
-  Usuario.destroy({ where: { id } })
+  Usuario.destroy({ where: { id }, individualHooks: true, req })
     .then(count => count == 1
       ? res.status(200).send({ message: `Usuario id=${id} eliminado.` })
       : res.status(404).send({ message: `No se pudo eliminar el usuario con id=${id}.` })
@@ -54,7 +54,7 @@ exports.delete = (req, res) => {
 
 // Delete all
 exports.deleteAll = (_req, res) => {
-  Usuario.destroy({ where: {}, truncate: false })
+  Usuario.destroy({ where: {}, truncate: false,individualHooks: true, req })
     .then(nums => res.send({ message: `${nums} usuarios eliminados.` }))
     .catch(err => res.status(500).send({ message: err.message }));
 };
