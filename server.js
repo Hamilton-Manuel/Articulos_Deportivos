@@ -2,6 +2,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const pagosCtrl = require("./app/controllers/pagos.controller.js");
 
 const app = express();
 
@@ -28,12 +29,11 @@ app.post(
   "/api/pagos/webhook/stripe",
   express.raw({ type: "application/json" }),
   (req, _res, next) => {
-    // Guardamos el raw por si luego quieres verificar firma con Stripe
-    req.rawBody = req.body;
-    // Si no vas a verificar la firma aún, parseamos a JSON para usar req.body normal:
-    try { req.body = JSON.parse(req.body); } catch (_) {}
+    req.rawBody = req.body;           // guarda el buffer crudo para verificar firma
+    try { req.body = JSON.parse(req.body); } catch (_) {} // útil si NO validas firma
     next();
-  }
+  },
+  pagosCtrl.webhookStripe               // <<--- handler REAL del webhook
 );
 
 /* ==============================
@@ -81,6 +81,15 @@ require("./app/routes/detalle_pedido.routes.js")(app);
    El middleware raw del webhook ya fue declarado ARRIBA, antes del bodyParser.
 */
 require("./app/routes/pagos.routes.js")(app);
+// ====== Páginas de prueba para Stripe Checkout ======
+app.get("/api/pagos/success", (req, res) => {
+  res.send("✅ Pago procesado correctamente. Puedes cerrar esta pestaña.");
+});
+
+app.get("/api/pagos/cancel", (req, res) => {
+  res.send("❌ Pago cancelado. Vuelve al sitio para intentarlo de nuevo.");
+});
+
 
 /* ==============================
    Server
