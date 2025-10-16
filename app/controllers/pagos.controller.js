@@ -1,4 +1,5 @@
 // controllers/pagos.controller.js
+require('dotenv').config();
 const db = require("../models");
 const Pago = db.pagos;
 const Pedido = db.pedidos;
