@@ -1,4 +1,5 @@
 // controllers/pagos.controller.js
+require('dotenv').config();
 const db = require("../models");
 const Pago = db.pagos;
 const Pedido = db.pedidos;
@@ -9,10 +10,9 @@ const pedidosCtrl = require("./pedidos.controller.js");
 
 // ====== CONFIG DE STRIPE ======
 // Claves de prueba (modo test).
-const STRIPE_SECRET_KEY   = "sk_test_51SIh5fGINSRiqAP8cKbGnEBH0Z4qgh8wihI1SZOQqiZ30f43osKAYszYnlxazOiMrVYfHT29meCZpCX0Mpy6RG6D00x71httYZ";
 const STRIPE_WEBHOOK_SECRET = "whsec_xxx_OPCIONAL_MIENTRAS_PRUEBAS";
 
-const stripe = require("stripe")(STRIPE_SECRET_KEY);
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 exports.create = (req, res) => {
   const { pedido_id, proveedor_pago, intento_id, monto, moneda, estado } = req.body;
