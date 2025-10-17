@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: linear-gradient(135deg, #000000, #1a1a1a);
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Contenedor principal */
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  transition: all 0.3s ease-in-out;
+}
+
+.login-container:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 30px rgba(255, 255, 255, 0.15);
+}
+
+/* Título */
+.login-container h2 {
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Labels y entradas */
+label {
+  display: block;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  outline: none;
+  margin-bottom: 1.2rem;
+  font-size: 1rem;
+}
+
+input::placeholder {
+  color: #bbb;
+}
+
+/* Botón principal */
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: #000;
+  border: 2px solid white;
+  color: white;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.login-btn:hover {
+  background-color: white;
+  color: black;
+  transform: translateY(-2px);
+}
+
+/* Enlaces */
+a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+a:hover {
+  color: #ccc;
+}
+
+/* Texto secundario */
+p {
+  color: #aaa;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Botones de redes */
+.social-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.social-buttons button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid white;
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.social-buttons button:hover {
+  background: white;
+  color: black;
+}
