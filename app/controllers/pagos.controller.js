@@ -9,8 +9,8 @@ const Producto = db.productos;
 const pedidosCtrl = require("./pedidos.controller.js");
 
 // ====== CONFIG DE STRIPE ======
-// Claves de prueba (modo test).
-const STRIPE_WEBHOOK_SECRET = "whsec_xxx_OPCIONAL_MIENTRAS_PRUEBAS";
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "whsec_xxx_OPCIONAL_MIENTRAS_PRUEBAS";
+const APP_BASE_URL = process.env.APP_BASE_URL || "https://rabi-sports.onrender.com";
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -94,8 +94,8 @@ exports.checkoutStripe = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
-      success_url: "http://localhost:8081/api/pagos/success?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "http://localhost:8081/api/pagos/cancel",
+      success_url: `${APP_BASE_URL}/api/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${APP_BASE_URL}/api/pagos/cancel`,
       metadata: { pedido_id }
     });
 
