@@ -1,5 +1,7 @@
 // models/productos.model.js
 module.exports = (sequelize, Sequelize) => {
+  const CATEGORIAS = ["Ropa", "Calzado", "Equipos y Accesorios", "Gym"];
+
   const Producto = sequelize.define("productos", {
     id: {
       type: Sequelize.UUID,
@@ -18,7 +20,16 @@ module.exports = (sequelize, Sequelize) => {
     descripcion: {
       type: Sequelize.TEXT
     },
-    proveedor_id: {                              // añadido a petición
+
+    categoria: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      validate: {
+        isIn: [CATEGORIAS],
+      }
+    },
+
+    proveedor_id: {
       type: Sequelize.UUID,
       references: { model: "proveedores", key: "id" },
       onDelete: "SET NULL"
@@ -42,6 +53,8 @@ module.exports = (sequelize, Sequelize) => {
       defaultValue: Sequelize.NOW
     }
   }, { timestamps: false });
+
+  Producto.CATEGORIAS = CATEGORIAS;
 
   return Producto;
 };
