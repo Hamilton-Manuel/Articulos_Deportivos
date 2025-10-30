@@ -1,6 +1,9 @@
 // client/src/pages/Dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import StatsCard from "../components/StatsCard";
+import ProductList from "../components/ProductList";
+
 
 export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -151,7 +154,13 @@ const catCounts = useMemo(() => {
           )}
 
           <div className="right">
-            {/* Aquí podrías poner un botón “Nuevo producto” más adelante */}
+          <button 
+            className="btn btn-primary"
+            onClick={() => navigate("/products")}
+            style={{ marginRight: '1rem' }}
+          >
+            📦 Registrar Producto
+          </button>
           </div>
         </section>
 

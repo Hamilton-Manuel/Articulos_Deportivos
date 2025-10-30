@@ -1,6 +1,6 @@
 // client/src/pages/Login.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import bg from "../images/rabisport.jpg";
 
 
@@ -82,6 +82,9 @@ export default function Login() {
           <button className="auth-btn" type="submit">Entrar</button>
 
           {error && <p className="auth-error">{error}</p>}
+            <p className="auth-link">
+            ¿No tienes cuenta? <Link to="/Register">Regístrate</Link>
+          </p>
           <footer className="auth-foot">
             <small>© {new Date().getFullYear()} RabiSport</small>
           </footer>
@@ -113,6 +116,24 @@ export default function Login() {
             grid-template-columns: 520px 1fr;  /* desktop: 2 columnas */
           }
         }
+        .auth-link {
+        margin-top: 1rem;
+        text-align: center;
+        color: #6b7280;
+      font-size: 0.875rem;
+          }
+
+.auth-link a {
+  color: #4ECDC4;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+          .auth-link a:hover {
+        color: #3ab5ad;
+  text-decoration: underline;
+}
 
         /* ===== Panel visual (texto sobre el fondo global) ===== */
         .auth-hero{
