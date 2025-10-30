@@ -3,13 +3,10 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import "./App.css";
-<<<<<<< HEAD
 import Register from "./pages/Register";
 import Products from "./pages/Products";
-=======
 import Carrito from "./pages/Carrito.jsx";
 
->>>>>>> e871e77a057905e8d19b63176d75e8b77b0d7763
 const isAuthed = () => !!localStorage.getItem("token");
 
 function PrivateRoute({ children }) {
