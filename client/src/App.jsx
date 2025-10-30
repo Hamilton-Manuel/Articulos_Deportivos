@@ -3,8 +3,13 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import "./App.css";
+<<<<<<< HEAD
 import Register from "./pages/Register";
 import Products from "./pages/Products";
+=======
+import Carrito from "./pages/Carrito.jsx";
+
+>>>>>>> e871e77a057905e8d19b63176d75e8b77b0d7763
 const isAuthed = () => !!localStorage.getItem("token");
 
 function PrivateRoute({ children }) {
@@ -26,9 +31,9 @@ export default function App() {
   <Route path="/register" element={<Register />} />
   <Route path="/products" element={<Products />} />
 
-        {/* dashboard protegido */}
          {/* dashboard público */}
          <Route path="Dashboard" element={<Dashboard />} />
+         <Route path="/Carrito" element={<Carrito />} />
 
 
         {/* cualquier otra ruta -> dashboard (o cambia a /login si prefieres) */}

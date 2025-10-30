@@ -15,6 +15,15 @@ export default function Dashboard() {
   const [cat, setCat] = useState(null); // null = todas
   const authed = !!localStorage.getItem("token");
 
+  
+ // ===== Carrito (localStorage) =====
+ const CART_KEY = "cart";
+ const readCart = () => {
+   try { return JSON.parse(localStorage.getItem(CART_KEY) || "[]"); } catch { return []; }
+ };
+ const saveCart = (items) => localStorage.setItem(CART_KEY, JSON.stringify(items));
+ const [cartCount, setCartCount] = useState(() => readCart().reduce((a,i)=>a+Number(i.qty||0),0));
+
 useEffect(() => {
   const base = import.meta.env.VITE_API_URL || "";
   setLoading(true);
@@ -82,16 +91,23 @@ const catCounts = useMemo(() => {
     );
 
   const navigate = useNavigate();
-  const handleSelect = (p) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      // Preservamos intención por si luego quieres redirigir a detalle
-      navigate("/login?next=/dashboard", { replace: false });
-      return;
-    }
-    // Aquí luego podrías ir a detalle: navigate(`/producto/${p.id || p.sku}`);
-    alert(`Seleccionado: ${p?.nombre || p?.sku || p?.id}`);
-  };
+  const handleAddToCart = (p) => {
+   const items = readCart();
+   const idx = items.findIndex(it => (it.id ?? it.sku) === (p.id ?? p.sku));
+   if (idx >= 0) {
+     items[idx].qty = Number(items[idx].qty || 0) + 1;
+   } else {
+     items.push({
+       id: p.id, sku: p.sku, nombre: p.nombre,
+       precio: Number(p.precio_venta || 0),
+       imagen_url: p.imagen_url || null,
+       existencia: Number(p.existencia ?? 0),
+       qty: 1
+     });
+   }
+   saveCart(items);
+   setCartCount(items.reduce((a,i)=>a+Number(i.qty||0),0));
+ };
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -108,6 +124,10 @@ const catCounts = useMemo(() => {
           <h1>RabiSport</h1>
         </div>
         <div className="dash-user">
+             <button className="btn-cart" title="Ver carrito" onClick={() => navigate("/carrito")}>
+               🛒
+               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+             </button>
           {authed ? (
             <>
               <span className="hello">Hola, {user?.nombre_completo || user?.correo || "usuario"}</span>
@@ -212,7 +232,7 @@ const catCounts = useMemo(() => {
             <div className="prov">
               {p?.proveedore?.nombre || p?.proveedor?.nombre || "Sin proveedor"}
             </div>
-             <button className="btn-buy" onClick={() => handleSelect(p)}>
+           <button className="btn-buy" onClick={() => handleAddToCart(p)}>
              Añadir al carrito
            </button>
           </div>
@@ -390,6 +410,25 @@ const catCounts = useMemo(() => {
           border-radius:12px; padding:16px; text-align:center;
         }
         .error{ border-color: rgba(255, 135, 135, .35); color:#ffd0d0; }
+        .btn-cart{
+  position: relative;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.15);
+  color:#dbe7ee;
+  border-radius:10px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-size:16px;
+}
+.btn-cart:hover{ background: rgba(255,255,255,.06); }
+.cart-badge{
+  position:absolute; top:-6px; right:-6px;
+  min-width:18px; height:18px; border-radius:999px;
+  font-size:11px; font-weight:800; line-height:18px;
+  text-align:center; background:#06b6d4; color:#041014;
+  padding:0 4px;
+}
+
       `}</style>
     </div>
   );
