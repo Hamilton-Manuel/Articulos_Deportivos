@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import "./App.css";
+import Carrito from "./pages/Carrito.jsx";
 
 const isAuthed = () => !!localStorage.getItem("token");
 
@@ -20,9 +21,9 @@ export default function App() {
         {/* login público */}
         <Route path="/login" element={<Login />} />
 
-        {/* dashboard protegido */}
          {/* dashboard público */}
          <Route path="Dashboard" element={<Dashboard />} />
+         <Route path="/Carrito" element={<Carrito />} />
 
 
         {/* cualquier otra ruta -> dashboard (o cambia a /login si prefieres) */}
