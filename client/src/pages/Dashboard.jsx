@@ -1,5 +1,6 @@
 // client/src/pages/Dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -9,6 +10,7 @@ export default function Dashboard() {
   const [q, setQ] = useState("");
   const CATS = ["Ropa", "Calzado", "Equipos y Accesorios", "Gym"];
   const [cat, setCat] = useState(null); // null = todas
+  const authed = !!localStorage.getItem("token");
 
 useEffect(() => {
   const base = import.meta.env.VITE_API_URL || "";
@@ -76,6 +78,18 @@ const catCounts = useMemo(() => {
       Number(n || 0)
     );
 
+  const navigate = useNavigate();
+  const handleSelect = (p) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Preservamos intención por si luego quieres redirigir a detalle
+      navigate("/login?next=/dashboard", { replace: false });
+      return;
+    }
+    // Aquí luego podrías ir a detalle: navigate(`/producto/${p.id || p.sku}`);
+    alert(`Seleccionado: ${p?.nombre || p?.sku || p?.id}`);
+  };
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -91,8 +105,16 @@ const catCounts = useMemo(() => {
           <h1>RabiSport</h1>
         </div>
         <div className="dash-user">
-          <span className="hello">Hola, {user?.nombre_completo || user?.correo || "usuario"}</span>
-          <button className="btn-out" onClick={logout}>Cerrar sesión</button>
+          {authed ? (
+            <>
+              <span className="hello">Hola, {user?.nombre_completo || user?.correo || "usuario"}</span>
+              <button className="btn-out" onClick={logout}>Cerrar sesión</button>
+            </>
+          ) : (
+            <button className="btn-out" onClick={() => (window.location.href = "/login")}>
+              Iniciar sesión
+            </button>
+          )}
         </div>
       </header>
 
@@ -181,6 +203,9 @@ const catCounts = useMemo(() => {
             <div className="prov">
               {p?.proveedore?.nombre || p?.proveedor?.nombre || "Sin proveedor"}
             </div>
+             <button className="btn-buy" onClick={() => handleSelect(p)}>
+             Añadir al carrito
+           </button>
           </div>
         </article>
       );
@@ -335,6 +360,19 @@ const catCounts = useMemo(() => {
         .price .val{ font-size:15px; font-weight:800; }
         .price .val.muted{ opacity:.85; font-weight:700; }
         .prov{ font-size:12px; opacity:.8; }
+
+        .btn-buy{
+          margin-top:10px;
+          width:100%;
+          padding:10px 12px;
+          border:none;
+          border-radius:12px;
+          cursor:pointer;
+          font-weight:800;
+          background: linear-gradient(90deg,#06b6d4,#0ea5a4);
+          color:#041014;
+        }
+        .btn-buy:hover{ filter:brightness(1.05); }
 
         .info, .error{
           grid-column: 1 / -1;

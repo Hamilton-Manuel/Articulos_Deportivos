@@ -21,17 +21,12 @@ export default function App() {
         <Route path="/login" element={<Login />} />
 
         {/* dashboard protegido */}
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
+         {/* dashboard público */}
+         <Route path="Dashboard" element={<Dashboard />} />
+
 
         {/* cualquier otra ruta -> dashboard (o cambia a /login si prefieres) */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/Dashboard" replace />} />
       </Routes>
     </div>
   );
