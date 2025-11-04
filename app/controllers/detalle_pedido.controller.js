@@ -54,14 +54,14 @@ exports.create = async (req, res) => {
       cantidad: Number(cantidad),
       precio_unitario,
       total_linea
-    });
+    }, { req });
 
     // 7) (Opcional) recalcular totales del encabezado con todos los detalles actuales
     const detalles = await Detalle.findAll({ where: { pedido_id } });
     const nuevo_subtotal = detalles.reduce((acc, d) => acc + Number(d.total_linea), 0);
     const nuevo_impuestos = 0; // ajusta si usarás IVA
     const nuevo_total = nuevo_subtotal + nuevo_impuestos;
-    await pedido.update({ subtotal: nuevo_subtotal, impuestos: nuevo_impuestos, total: nuevo_total });
+    await pedido.update({ subtotal: nuevo_subtotal, impuestos: nuevo_impuestos, total: nuevo_total }, { req });
 
     return res.status(201).send(data);
   } catch (err) {

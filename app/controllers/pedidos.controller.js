@@ -15,7 +15,7 @@ exports.create = (req, res) => {
   if (!direccion_envio) return res.status(400).send({ message: "direccion_envio es obligatoria." });
 
   // Nota: aquí NO hay detalle ni validación de stock; es solo cabecera "en blanco"
-  Pedido.create({ cliente_id, direccion_envio, estado, subtotal, impuestos, total })
+  Pedido.create({ cliente_id, direccion_envio, estado, subtotal, impuestos, total }, { req })
     .then(data => res.status(201).send(data))
     .catch(err => res.status(500).send({ message: err.message }));
 };
@@ -77,7 +77,7 @@ exports.crearConDetalle = async (req, res) => {
     // 3) Crear cabecera (estado PENDIENTE por defecto)
     const pedido = await Pedido.create(
       { cliente_id, direccion_envio, subtotal, impuestos, total },
-      { transaction: t }
+      { transaction: t },{ req }
     );
 
     // 4) Crear detalle (precio_venta desde BD)
@@ -90,7 +90,7 @@ exports.crearConDetalle = async (req, res) => {
         cantidad: Number(it.cantidad),
         precio_unitario,
         total_linea: precio_unitario * Number(it.cantidad)
-      }, { transaction: t });
+      }, { transaction: t },{ req });
     }
 
     await t.commit();
@@ -152,12 +152,12 @@ exports.confirmarPago = async (req, res) => {
           tipo: "VENTA",
           motivo: `Pedido ${pedido_id}`,
           pedido_id
-        }, { transaction: t });
+        }, { transaction: t },{ req });
       }
     }
 
     // Marcar como PAGADO
-    await pedido.update({ estado: "PAGADO" }, { transaction: t });
+    await pedido.update({ estado: "PAGADO" }, { transaction: t },{ req });
 
     await t.commit();
     return res.send({ message: "Pago confirmado y stock descontado.", pedido_id });
@@ -188,7 +188,7 @@ exports.findOne = (req, res) => {
 // Úsalo solo para actualizar direccion_envio o estado (p. ej., ENVIADO/CANCELADO).
 exports.update = (req, res) => {
   const id = req.params.id;
-  Pedido.update(req.body, { where: { id } })
+  Pedido.update(req.body, { where: { id } },{ req })
     .then(([count]) => count == 1
       ? res.send({ message: "Pedido actualizado." })
       : res.status(404).send({ message: `No se pudo actualizar el pedido con id=${id}.` })
@@ -199,7 +199,7 @@ exports.update = (req, res) => {
 // ===== Delete =====
 exports.delete = (req, res) => {
   const id = req.params.id;
-  Pedido.destroy({ where: { id } })
+  Pedido.destroy({ where: { id } },{ req })
     .then(count => count == 1
       ? res.status(200).send({ message: `Pedido id=${id} eliminado.` })
       : res.status(404).send({ message: `No se pudo eliminar el pedido con id=${id}.` })
@@ -208,7 +208,126 @@ exports.delete = (req, res) => {
 };
 
 exports.deleteAll = (_req, res) => {
-  Pedido.destroy({ where: {}, truncate: false })
+  Pedido.destroy({ where: {}, truncate: false },{_req})
     .then(nums => res.send({ message: `${nums} pedidos eliminados.` }))
     .catch(err => res.status(500).send({ message: err.message }));
 };
+// === Helpers internos para carrito ===
+async function ensureClienteForUser(userId, correoTx, t) {
+  const db = require("../models");
+  const Cliente = db.clientes;
+  let cli = await Cliente.findOne({ where: { usuario_id: userId }, transaction: t });
+  if (!cli) {
+    cli = await Cliente.create({ usuario_id: userId, correo: correoTx || null }, { transaction: t });
+  }
+  return cli;
+}
+
+async function getOrCreateOpenPedido(clienteId, t) {
+  let ped = await Pedido.findOne({ where: { cliente_id: clienteId, estado: "PENDIENTE" }, transaction: t });
+  if (!ped) {
+    ped = await Pedido.create({
+      cliente_id: clienteId,
+      direccion_envio: "",
+      estado: "PENDIENTE",
+      subtotal: 0,
+      impuestos: 0,
+      total: 0
+    }, { transaction: t });
+  }
+  return ped;
+}
+
+async function recalcPedido(pedidoId, t) {
+  const rows = await Detalle.findAll({ where: { pedido_id: pedidoId }, transaction: t });
+  const subtotal = rows.reduce((a, r) => a + Number(r.total_linea || 0), 0);
+  const impuestos = 0; // ajusta si usarás IVA
+  const total = subtotal + impuestos;
+  await Pedido.update({ subtotal, impuestos, total }, { where: { id: pedidoId }, transaction: t });
+  return { subtotal, impuestos, total };
+}
+
+// GET /api/pedidos/open  -> devuelve el pedido PENDIENTE + items
+exports.open = async (req, res) => {
+  const db = require("../models");
+  const Usuario = db.usuarios;
+  const t = await db.sequelize.transaction();
+  try {
+    const userId = req.user.id;
+    const user = await Usuario.findByPk(userId, { transaction: t });
+    const cli = await ensureClienteForUser(userId, user?.correo, t);
+
+    const ped = await Pedido.findOne({ where: { cliente_id: cli.id, estado: "PENDIENTE" }, transaction: t });
+    if (!ped) { await t.commit(); return res.json({ pedido: null, items: [], totals: { subtotal: 0, impuestos: 0, total: 0 } }); }
+
+    const items = await Detalle.findAll({
+      where: { pedido_id: ped.id },
+      include: [{ model: Producto, attributes: ["id","sku","nombre","precio_venta"] }],
+      transaction: t
+    });
+    const totals = await recalcPedido(ped.id, t);
+
+    await t.commit();
+    return res.json({ pedido: ped, items, totals });
+  } catch (e) {
+    await t.rollback();
+    return res.status(500).send({ message: e.message });
+  }
+};
+
+// POST /api/pedidos/sync  { items:[{producto_id, cantidad}] }  -> upsert detalle
+exports.sync = async (req, res) => {
+  const db = require("../models");
+  const Usuario = db.usuarios;
+  const t = await db.sequelize.transaction();
+  try {
+    const userId = req.user.id;
+    const reqItems = Array.isArray(req.body.items) ? req.body.items : [];
+    const user = await Usuario.findByPk(userId, { transaction: t });
+    const cli = await ensureClienteForUser(userId, user?.correo, t);
+    const ped = await getOrCreateOpenPedido(cli.id, t);
+
+    // Mapear existentes
+    const actuales = await Detalle.findAll({ where: { pedido_id: ped.id }, transaction: t });
+    const mapAct = new Map(actuales.map(d => [String(d.producto_id), d]));
+    const vistos = new Set();
+
+    for (const it of reqItems) {
+      const prodId = String(it.producto_id);
+      const q = Math.max(1, parseInt(it.cantidad, 10) || 1);
+
+      const prod = await Producto.findByPk(prodId, { transaction: t });
+      if (!prod || !prod.activo) continue;
+
+      const precio = Number(prod.precio_venta || 0);
+      const total_linea = precio * q;
+
+      if (mapAct.has(prodId)) {
+        const det = mapAct.get(prodId);
+        await det.update({ cantidad: q, precio_unitario: precio, total_linea }, { transaction: t });
+      } else {
+        await Detalle.create({ pedido_id: ped.id, producto_id: prodId, cantidad: q, precio_unitario: precio, total_linea }, { transaction: t });
+      }
+      vistos.add(prodId);
+    }
+
+    // Borrar líneas que ya no vienen
+    for (const [pid, d] of mapAct.entries()) {
+      if (!vistos.has(pid)) await Detalle.destroy({ where: { id: d.id }, transaction: t });
+    }
+
+    const totals = await recalcPedido(ped.id, t);
+    const items = await Detalle.findAll({
+      where: { pedido_id: ped.id },
+      include: [{ model: Producto, attributes: ["id","sku","nombre","precio_venta"] }],
+      transaction: t
+    });
+
+    await t.commit();
+    return res.json({ ok: true, pedido: ped, items, totals });
+  } catch (e) {
+    await t.rollback();
+    return res.status(500).send({ message: e.message });
+  }
+};
+

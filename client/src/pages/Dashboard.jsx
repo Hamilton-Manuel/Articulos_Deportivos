@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import StatsCard from "../components/StatsCard";
 import ProductList from "../components/ProductList";
+import { readCart, saveCart } from "../utils/cart";
 
 
 export default function Dashboard() {
@@ -16,13 +17,10 @@ export default function Dashboard() {
   const authed = !!localStorage.getItem("token");
 
   
- // ===== Carrito (localStorage) =====
- const CART_KEY = "cart";
- const readCart = () => {
-   try { return JSON.parse(localStorage.getItem(CART_KEY) || "[]"); } catch { return []; }
- };
- const saveCart = (items) => localStorage.setItem(CART_KEY, JSON.stringify(items));
- const [cartCount, setCartCount] = useState(() => readCart().reduce((a,i)=>a+Number(i.qty||0),0));
+  // Carrito por usuario (usa utils/cart)
+  const [cartCount, setCartCount] = useState(() =>
+    readCart().reduce((a,i)=>a+Number(i.qty||0),0)
+  );
 
 useEffect(() => {
   const base = import.meta.env.VITE_API_URL || "";
@@ -62,6 +60,12 @@ useEffect(() => {
     .catch((e) => setError(e.message))
     .finally(() => setLoading(false));
 }, []);
+ useEffect(() => {
+   const recalc = () =>
+     setCartCount(readCart().reduce((a,i)=>a+Number(i.qty||0),0));
+   window.addEventListener("storage", recalc);
+   return () => window.removeEventListener("storage", recalc);
+ }, []);
 
 
 const filtrados = useMemo(() => {
@@ -91,23 +95,30 @@ const catCounts = useMemo(() => {
     );
 
   const navigate = useNavigate();
-  const handleAddToCart = (p) => {
-   const items = readCart();
-   const idx = items.findIndex(it => (it.id ?? it.sku) === (p.id ?? p.sku));
-   if (idx >= 0) {
-     items[idx].qty = Number(items[idx].qty || 0) + 1;
-   } else {
-     items.push({
-       id: p.id, sku: p.sku, nombre: p.nombre,
-       precio: Number(p.precio_venta || 0),
-       imagen_url: p.imagen_url || null,
-       existencia: Number(p.existencia ?? 0),
-       qty: 1
-     });
-   }
-   saveCart(items);
-   setCartCount(items.reduce((a,i)=>a+Number(i.qty||0),0));
- };
+const handleAddToCart = (p) => {
+  const token = localStorage.getItem("token") || "";
+  if (!token) {
+    // No autenticado → redirige a login y NO agrega
+    navigate("/login");
+    return;
+  }
+
+  const items = readCart();
+  const idx = items.findIndex(it => (it.id ?? it.sku) === (p.id ?? p.sku));
+  if (idx >= 0) {
+    items[idx].qty = Number(items[idx].qty || 0) + 1;
+  } else {
+    items.push({
+      id: p.id, sku: p.sku, nombre: p.nombre,
+      precio: Number(p.precio_venta || 0),
+      imagen_url: p.imagen_url || null,
+      existencia: Number(p.existencia ?? 0),
+      qty: 1
+    });
+  }
+  saveCart(items);
+  setCartCount(items.reduce((a,i)=>a+Number(i.qty||0),0));
+};
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -124,10 +135,15 @@ const catCounts = useMemo(() => {
           <h1>RabiSport</h1>
         </div>
         <div className="dash-user">
-             <button className="btn-cart" title="Ver carrito" onClick={() => navigate("/carrito")}>
-               🛒
-               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-             </button>
+        <button
+          className="btn-cart"
+          title="Ver carrito"
+          onClick={() => (localStorage.getItem("token") ? navigate("/carrito") : navigate("/login"))}
+        >
+          🛒
+          {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+        </button>
+
           {authed ? (
             <>
               <span className="hello">Hola, {user?.nombre_completo || user?.correo || "usuario"}</span>
