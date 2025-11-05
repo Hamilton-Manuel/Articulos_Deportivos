@@ -60,6 +60,51 @@ export default function Products() {
     }
   };
 
+  // FUNCIÓN PARA GUARDAR (CREAR O EDITAR)
+  const handleSaveProduct = async (formData) => {
+    try {
+      const base = import.meta.env.VITE_API_URL || "http://localhost:8081";
+      
+      // Determinar URL y método según si estamos editando o creando
+      const isEditing = editingProduct !== null;
+      const url = isEditing 
+        ? `${base}/api/productos/create/${editingProduct.id}` 
+        : `${base}/api/productos/update`;
+      
+      const method = isEditing ? "PUT" : "POST";
+
+      console.log("=== DEBUG ===");
+      console.log("Editando:", isEditing);
+      console.log("URL:", url);
+      console.log("Método:", method);
+      console.log("Datos a enviar:", formData);
+
+      // Nueva función genérica para manejar el guardado
+      await handleSaveProductGeneric(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify(formData),
+      });
+
+      // Cerrar modal y recargar
+      setShowModal(false);
+      setEditingProduct(null);
+      await loadProducts();
+      
+      alert(isEditing 
+        ? "✅ Producto actualizado correctamente" 
+        : "✅ Producto creado exitosamente"
+      );
+
+    } catch (error) {
+      console.error("Error completo:", error);
+      alert(`❌ Error al guardar el producto:\n${error.message}`);
+    }
+  };
+
   const handleCreate = () => {
     setEditingProduct(null);
     setShowModal(true);
@@ -74,8 +119,8 @@ export default function Products() {
     if (!confirm("¿Estás seguro de eliminar este producto?")) return;
     
     try {
-      const base = import.meta.env.VITE_API_URL || "";
-      const res = await fetch(`${base}/api/productos/${id}`, {
+      const base = import.meta.env.VITE_API_URL || "http://localhost:8081";
+      const res = await fetch(`${base}/api/productos/delete/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -85,19 +130,16 @@ export default function Products() {
       
       if (!res.ok) throw new Error("Error al eliminar");
       await loadProducts();
-      alert("Producto eliminado correctamente");
+      alert("✅ Producto eliminado correctamente");
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al eliminar producto");
+      alert("❌ Error al eliminar producto");
     }
   };
 
-  const handleModalClose = async (shouldRefresh) => {
+  const handleModalClose = () => {
     setShowModal(false);
     setEditingProduct(null);
-    if (shouldRefresh) {
-      await loadProducts();
-    }
   };
 
   // Filtrar productos
@@ -166,10 +208,50 @@ export default function Products() {
 
       {showModal && (
         <ProductModal
+          show={showModal}
           product={editingProduct}
           onClose={handleModalClose}
+          onSave={handleSaveProduct} // ✅ ESTO ES LO QUE FALTABA
         />
       )}
     </div>
   );
+}
+
+// Ejemplo genérico para handleSaveProduct (POST/PUT)
+async function handleSaveProductGeneric(url, options) {
+  try {
+    const res = await fetch(url, options);
+
+    // leer texto primero para poder mostrar HTML o JSON legible en errores
+    const responseText = await res.text();
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+
+    // Información útil para debug en consola
+    console.log("Respuesta status:", res.status);
+    console.log("content-type:", contentType);
+    console.log("body (preview):", responseText.slice(0, 1000));
+
+    if (!res.ok) {
+      // si viene JSON, intentar parsear el message; si viene HTML, incluirlo en el error
+      if (contentType.includes("application/json")) {
+        const errObj = JSON.parse(responseText);
+        throw new Error(errObj.message || JSON.stringify(errObj));
+      } else {
+        // HTML u otro -> muestra el texto (o primeras líneas)
+        throw new Error(`Server error ${res.status}: ${responseText.substring(0, 500)}`);
+      }
+    }
+
+    // Éxito: parsear si es JSON, o devolver texto si no
+    if (contentType.includes("application/json")) {
+      return JSON.parse(responseText);
+    } else {
+      // si el backend responde con texto plano, devuélvelo
+      return responseText;
+    }
+  } catch (err) {
+    console.error("handleSaveProduct error:", err);
+    throw err; // propaga para que el caller lo muestre
+  }
 }
