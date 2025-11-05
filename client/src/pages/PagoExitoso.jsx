@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import "../style/pagoExitoso.css";
+import "../style/PagoExitoso.css";
 
 export default function PagoExitoso() {
   const navigate = useNavigate();
