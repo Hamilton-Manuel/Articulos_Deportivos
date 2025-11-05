@@ -32,6 +32,7 @@ export default function App() {
          {/* dashboard público */}
          <Route path="Dashboard" element={<Dashboard />} />
          <Route path="/Carrito" element={<Carrito />} />
+         <Route path="/pago-exitoso" element={<PagoExitoso />} />
 
 
         {/* cualquier otra ruta -> dashboard (o cambia a /login si prefieres) */}
