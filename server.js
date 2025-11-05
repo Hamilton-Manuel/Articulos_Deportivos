@@ -12,7 +12,7 @@ const app = express();
 const ORIGENES = [
   "http://localhost:5173",
   "http://localhost:8081",
-  "https://rabi-sports.onrender.com"
+  'https://articulos-deportivos-fronted.onrender.com' 
 ];
 app.use(cors({
   origin: (origin, cb) => {
