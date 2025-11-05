@@ -1,7 +1,7 @@
 // client/src/components/ProductModal.jsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ProductForm from "./ProductForm";
-
+import "../style/dashboard-products.css";
 export default function ProductModal({ product, onClose }) {
   const [isClosing, setIsClosing] = useState(false);
 

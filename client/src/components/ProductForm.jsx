@@ -12,7 +12,6 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
     proveedor_id: product?.proveedor_id || "",
     precio_costo: product?.precio_costo || "",
     precio_venta: product?.precio_venta || "",
-    imagen_url: product?.imagen_url || "",
     activo: product?.activo ?? true
   });
   const [loading, setLoading] = useState(false);
@@ -39,7 +38,7 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
     setLoading(true);
 
     try {
-      const base = import.meta.env.VITE_API_URL || "";
+      const base = import.meta.env.VITE_API_URL || "http://localhost:8081";
       const productData = {
         ...formData,
         precio_costo: parseFloat(formData.precio_costo),
@@ -47,8 +46,8 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
       };
 
       const url = product 
-        ? `${base}/api/productos/${product.id}` 
-        : `${base}/api/productos`;
+        ? `${base}/api/productos/update/${product.id}` 
+        : `${base}/api/productos/create`;
       
       const method = product ? "PUT" : "POST";
 
@@ -152,18 +151,6 @@ export default function ProductForm({ product, onSuccess, onCancel }) {
             required
           />
         </div>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">URL de Imagen</label>
-        <input
-          className="form-input"
-          type="text"
-          name="imagen_url"
-          value={formData.imagen_url}
-          onChange={handleChange}
-          placeholder="https://ejemplo.com/imagen.jpg"
-        />
       </div>
 
       <div className="form-row">
