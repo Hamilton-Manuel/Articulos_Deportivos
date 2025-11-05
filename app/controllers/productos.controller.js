@@ -5,7 +5,7 @@ const Op = db.Sequelize.Op;
 
 // Create
 exports.create = (req, res) => {
-  const { sku, nombre, descripcion, proveedor_id, precio_costo, precio_venta, activo } = req.body;
+  const { sku, nombre, descripcion,categoria,proveedor_id, precio_costo, precio_venta, activo } = req.body;
   if (!sku || !nombre || precio_costo == null || precio_venta == null) {
     return res.status(400).send({ message: "sku, nombre, precio_costo y precio_venta son obligatorios." });
   }
@@ -15,7 +15,7 @@ exports.create = (req, res) => {
   }
 
 
-  const item = { sku, nombre, descripcion, proveedor_id, precio_costo, precio_venta, activo };
+  const item = { sku, nombre, descripcion,categoria, proveedor_id, precio_costo, precio_venta, activo };
   Producto.create(item,{ req })
     .then(data => res.status(201).send(data))
     .catch(err => res.status(500).send({ message: err.message }));
