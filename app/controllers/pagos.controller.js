@@ -96,7 +96,7 @@ exports.checkoutStripe = async (req, res) => {
       line_items,
       //success_url: `${APP_BASE_URL}/api/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
       //cancel_url:  `${APP_BASE_URL}/api/pagos/cancel`,
-      success_url: "https://articulos-deportivos-fronted.onrender.com/pago-exitoso",
+      success_url: "https://articulos-deportivos-fronted.onrender.com/pago-exitoso?session_id={CHECKOUT_SESSION_ID}",
       cancel_url:  "https://articulos-deportivos-fronted.onrender.com/carrito",
 
       metadata: { pedido_id }
