@@ -94,8 +94,11 @@ exports.checkoutStripe = async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
-      success_url: `${APP_BASE_URL}/api/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${APP_BASE_URL}/api/pagos/cancel`,
+      //success_url: `${APP_BASE_URL}/api/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
+      //cancel_url:  `${APP_BASE_URL}/api/pagos/cancel`,
+      success_url: "https://articulos-deportivos-fronted.onrender.com/pago-exitoso",
+      cancel_url:  "https://articulos-deportivos-fronted.onrender.com/carrito",
+
       metadata: { pedido_id }
     });
 

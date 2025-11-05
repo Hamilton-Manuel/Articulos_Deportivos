@@ -6,6 +6,7 @@ import "./App.css";
 import Register from "./pages/Register";
 import Products from "./pages/Products";
 import Carrito from "./pages/Carrito.jsx";
+import PagoExitoso from "./pages/PagoExitoso";
 
 const isAuthed = () => !!localStorage.getItem("token");
 
