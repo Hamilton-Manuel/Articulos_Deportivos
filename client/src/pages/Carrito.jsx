@@ -12,6 +12,24 @@ export default function Carrito() {
   const uid   = user?.id || "guest";
   const token = localStorage.getItem("token") || "";
 
+    // === Estado de datos del cliente (para validar antes de pagar) ===
+  const [clienteId, setClienteId] = useState(null);
+  const [cliente, setCliente] = useState({
+    correo: user?.correo || "",
+    telefono: "",
+    direccion_envio: "",
+    direccion_facturacion: ""
+  });
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const needsData = (c = cliente) => {
+    return !String(c.telefono || "").trim()
+        || !String(c.direccion_envio || "").trim()
+        || !String(c.direccion_facturacion || "").trim();
+  };
+
+
   // Si no hay sesión, redirige a login
   if (!token) {
     window.location.href = "/login";
@@ -51,6 +69,33 @@ export default function Carrito() {
       // guarda id del encabezado del pedido
       setPedidoId(data?.id || data?.pedido?.id || null);
 
+            // 2.5) traer datos del cliente por correo para prellenar
+      try {
+        const correo = encodeURIComponent(user?.correo || "");
+        if (correo) {
+          const rc = await fetch(`${api}/api/clientes/correo/${correo}`, {
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+          });
+          if (rc.ok) {
+            const arr = await rc.json();
+            if (Array.isArray(arr) && arr.length) {
+              const c = arr[0];
+              setClienteId(c.id);
+              setCliente({
+                correo: c.correo || (user?.correo || ""),
+                telefono: c.telefono || "",
+                direccion_envio: c.direccion_envio || "",
+                direccion_facturacion: c.direccion_facturacion || ""
+              });
+            } else {
+              // no existe -> quedamos listos para crear
+              setCliente(prev => ({ ...prev, correo: prev.correo || (user?.correo || "") }));
+            }
+          }
+        }
+      } catch { /* no bloquear */ }
+
+
       // 3) mapear items del server
       if (Array.isArray(data?.items)) {
         const mapped = data.items.map(it => ({
@@ -78,9 +123,8 @@ export default function Carrito() {
   const dec  = (id) => setAndSave(items.map(i => i.id===id ? {...i, qty:Math.max(1, Number(i.qty||0)-1)} : i));
   const del  = (id) => setAndSave(items.filter(i => i.id!==id));
   const clear= () => setAndSave([]);
-
-  // === pagar con stripe ===
-  const handlePay = async () => {
+    // === iniciar checkout en Stripe (se usa luego de guardar cliente) ===
+  const startCheckout = async () => {
     if (!pedidoId) { alert("No hay un pedido abierto para pagar."); return; }
     try {
       setPaying(true);
@@ -91,12 +135,75 @@ export default function Carrito() {
       });
       const data = await res.json();
       if (!res.ok || !data?.url) throw new Error(data?.message || "No se pudo iniciar el pago.");
-      window.location.href = data.url; // redirige a Stripe
+      window.location.href = data.url;
     } catch (e) {
       alert(e.message);
       setPaying(false);
     }
   };
+
+  // === crear/actualizar cliente ===
+  const saveCliente = async (goToPay = false) => {
+    try {
+      // validación mínima
+      if (needsData(cliente)) {
+        alert("Completa teléfono, dirección de envío y de facturación.");
+        return;
+      }
+      setSaving(true);
+
+      // construir payload
+      const payload = {
+        correo: cliente.correo || (user?.correo || ""),
+        telefono: String(cliente.telefono || "").trim(),
+        direccion_envio: String(cliente.direccion_envio || "").trim(),
+        direccion_facturacion: String(cliente.direccion_facturacion || "").trim(),
+      };
+
+      let ok = false;
+      let newId = clienteId;
+
+      if (clienteId) {
+        // UPDATE
+        const r = await fetch(`${api}/api/clientes/update/${clienteId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        });
+        ok = r.ok;
+      } else {
+        // CREATE (incluye usuario_id requerido por tu modelo)
+        const r = await fetch(`${api}/api/clientes/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ...payload, usuario_id: user?.id }),
+        });
+        ok = r.ok;
+        if (ok) {
+          const c = await r.json();
+          newId = c?.id || null;
+          setClienteId(newId);
+        }
+      }
+
+      if (!ok) throw new Error("No se pudo guardar el cliente.");
+
+      setShowForm(false);
+      if (goToPay) await startCheckout();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  // === flujo de pagar: forzar datos de cliente antes ===
+  const handlePay = async () => {
+    // siempre obligamos a confirmar/actualizar datos
+    setShowForm(true);
+  };
+
 
   return (
     <div className="cart-shell">
@@ -191,6 +298,78 @@ export default function Carrito() {
             </div>
           </>
         )}
+              {/* === Modal datos de cliente (obligatorio antes de pagar) === */}
+      {showForm && (
+        <div className="modal-mask">
+          <div className="modal-card">
+            <h3 style={{marginTop:0}}>Datos de envío y facturación</h3>
+
+            <div className="form-grid">
+              <label className="form-item">
+                <span>Correo (solo lectura)</span>
+                <input value={cliente.correo} readOnly className="inp" />
+              </label>
+
+              <label className="form-item">
+                <span>Teléfono *</span>
+                <input
+                  className="inp"
+                  value={cliente.telefono}
+                  onChange={e=>setCliente(v=>({ ...v, telefono: e.target.value }))}
+                  placeholder="Ej. +502 5555-6789"
+                />
+              </label>
+
+              <label className="form-item wide">
+                <span>Dirección de envío *</span>
+                <textarea
+                  className="inp"
+                  rows={2}
+                  value={cliente.direccion_envio}
+                  onChange={e=>setCliente(v=>({ ...v, direccion_envio: e.target.value }))}
+                  placeholder="Calle/Avenida, zona, municipio, departamento"
+                />
+              </label>
+
+              <label className="form-item wide">
+                <span>Dirección de facturación *</span>
+                <textarea
+                  className="inp"
+                  rows={2}
+                  value={cliente.direccion_facturacion}
+                  onChange={e=>setCliente(v=>({ ...v, direccion_facturacion: e.target.value }))}
+                  placeholder="Calle/Avenida, zona, municipio, departamento"
+                />
+              </label>
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-out" onClick={()=>setShowForm(false)} disabled={saving || paying}>
+                Cancelar
+              </button>
+
+              <button
+                className="btn-clear"
+                onClick={()=>saveCliente(false)}
+                disabled={saving}
+                title="Guardar sin pagar todavía"
+              >
+                {saving ? "Guardando…" : "Guardar"}
+              </button>
+
+              <button
+                className="btn-pay"
+                onClick={()=>saveCliente(true)}
+                disabled={saving || paying}
+                title="Guardar y continuar al pago"
+              >
+                {saving ? "Guardando…" : "Guardar y pagar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       </main>
     </div>
   );
