@@ -6,32 +6,21 @@ const pagosCtrl = require("./app/controllers/pagos.controller.js");
 
 const app = express();
 
-const FRONT_FROM_ENV = (process.env.FRONT_URL || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
+/* ==============================
+   CORS: permite front local (Vite 5173) y pruebas locales
+   ============================== */
 const ORIGENES = [
-  'http://localhost:5173',
-  'http://localhost:8081',
-  ...FRONT_FROM_ENV, // ej: https://articulos-deportivos-fronted.onrender.com
+  "http://localhost:5173",
+  "http://localhost:8081",
+  "https://rabi-sports.onrender.com"
 ];
-
-const corsOptions = {
-  origin: function (origin, cb) {
-    // Permite llamadas sin origin (Postman/curl) y los orígenes listados
+app.use(cors({
+  origin: (origin, cb) => {
+    // Permite herramientas como Postman (no envían origin)
     if (!origin) return cb(null, true);
-    if (ORIGENES.includes(origin)) return cb(null, true);
-    return cb(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-// Responder preflight con los headers CORS
-app.options('*', cors(corsOptions));
+    return cb(null, ORIGENES.includes(origin));
+  }
+}));
 
 /* ==============================
    STRIPE WEBHOOK: raw body SOLO para esta ruta
@@ -66,7 +55,6 @@ app.get("/", (req, res) => {
 });
 
 
-require("./app/routes/cine.routes.js")(app);
 
 require("./app/routes/usuarios.routes.js")(app);
 require("./app/routes/clientes.routes.js")(app);

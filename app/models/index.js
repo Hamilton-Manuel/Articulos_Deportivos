@@ -34,6 +34,8 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
+// Importamos y registramos el modelo de cine
+//db.cines = require("./cine.model.js")(sequelize, Sequelize);
 
 // === Modelos reales del sistema ===
 db.usuarios               = require("./usuarios.model.js")(sequelize, Sequelize);
