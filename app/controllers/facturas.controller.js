@@ -57,19 +57,20 @@ doc
   .fillColor(BRAND.gray)
   .text("Factura", X + 60, Y + 36);
 
-// Columna derecha anclada ~58% del ancho, para que no envuelva
+// Columna derecha más ancha (≈46% del ancho) para alojar UUID completos
 doc.fillColor(BRAND.dark).fontSize(10);
-const rColX = X + Math.floor(W * 0.58);
+const rColX = X + Math.floor(W * 0.46);
+const rColW = W - (rColX - X) - 5; // menos margen derecho => más espacio útil
 
 doc.text(`No. factura: ${pedido.id}`, rColX, Y + 12, {
-  width: W - (rColX - X) - 10,
+  width: rColW,
   align: "left"
 });
 doc.text(
   `Fecha: ${new Date(pedido.creado_en || Date.now()).toLocaleString()}`,
   rColX,
-  Y + 26,
-  { width: W - (rColX - X) - 10, align: "left" }
+  Y + 28, // un pelín más abajo para respirar
+  { width: rColW, align: "left" }
 );
 
 

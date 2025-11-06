@@ -110,7 +110,6 @@ const handleDescargarFactura = async () => {
                   <path d="M3 10.5L12 3l9 7.5" />
                   <path d="M5 10v10h5v-6h4v6h5V10" />
                 </svg>
-                Seguir comprando
               </Link>
 
             </div>
