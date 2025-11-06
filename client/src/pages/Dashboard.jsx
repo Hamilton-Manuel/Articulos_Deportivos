@@ -15,12 +15,24 @@ export default function Dashboard() {
   const CATS = ["Ropa", "Calzado", "Equipos y Accesorios", "Gym"];
   const [cat, setCat] = useState(null); // null = todas
   const authed = !!localStorage.getItem("token");
+  // Solo admin ve existencias en la tarjeta
+  const isAdmin = String(user?.rol || "").toUpperCase() === "ADMIN";
+
 
   
   // Carrito por usuario (usa utils/cart)
   const [cartCount, setCartCount] = useState(() =>
     readCart().reduce((a,i)=>a+Number(i.qty||0),0)
   );
+  const [detail, setDetail] = useState(null);
+  const openDetail = (p) => setDetail(p);
+  const closeDetail = () => setDetail(null);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setDetail(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
 useEffect(() => {
   const base = import.meta.env.VITE_API_URL || "";
@@ -95,13 +107,17 @@ const catCounts = useMemo(() => {
     );
 
   const navigate = useNavigate();
-const handleAddToCart = (p) => {
-  const token = localStorage.getItem("token") || "";
-  if (!token) {
-    // No autenticado → redirige a login y NO agrega
-    navigate("/login");
-    return;
-  }
+  const handleAddToCart = (p) => {
+    const token = localStorage.getItem("token") || "";
+    if (!token) {
+      // No autenticado → redirige a login y NO agrega
+      navigate("/login");
+      return;
+    }
+      // Sin existencias → NO permitir agregar
+    if (Number(p?.existencia ?? 0) <= 0) {
+      return;
+    }
 
   const items = readCart();
   const idx = items.findIndex(it => (it.id ?? it.sku) === (p.id ?? p.sku));
@@ -188,16 +204,6 @@ const handleAddToCart = (p) => {
               {cat} ×
             </span>
           )}
-
-          <div className="right">
-          <button 
-            className="btn btn-primary"
-            onClick={() => navigate("/products")}
-            style={{ marginRight: '1rem' }}
-          >
-            📦 Registrar Producto
-          </button>
-          </div>
         </section>
 
         {/* Grid */}
@@ -212,9 +218,10 @@ const handleAddToCart = (p) => {
     filtrados.map((p) => {
       // ⬇️ p se define aquí como parámetro del map
       const imgUrl = p.imagen_url || `/products/${p.sku || p.id}.jpg`;
+      const agotado = Number(p.existencia ?? 0) <= 0;
 
       return (
-        <article key={p.id} className="card">
+        <article key={p.id} className="card" onClick={() => openDetail(p)} role="button">
           <div
             className="thumb"
             style={{
@@ -225,8 +232,8 @@ const handleAddToCart = (p) => {
           <div className="card-body">
             <div className="row1">
               <h3 className="name">{p.nombre}</h3>
-              <span className={`badge ${p.activo ? "ok" : "off"}`}>
-                {p.activo ? "Disponible" : "Inactivo"}
+              <span className={`badge ${!p.activo ? "off" : (agotado ? "sold" : "ok")}`}>
+                {!p.activo ? "Inactivo" : (agotado ? "Agotado" : "Disponible")}
               </span>
             </div>
 
@@ -237,25 +244,70 @@ const handleAddToCart = (p) => {
                 <span className="lbl">Precio</span>
                 <span className="val">{fmtQ(p.precio_venta)}</span>
               </div>
-              <div className="price">
-                <span className="lbl">Existencia</span>
-                <span className="val">
-                  {Number.isFinite(p.existencia) ? p.existencia : "—"}
-                </span>
-              </div>
+              {isAdmin && (
+                <div className="price">
+                  <span className="lbl">Existencia</span>
+                  <span className="val">
+                    {Number.isFinite(p.existencia) ? p.existencia : "—"}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="prov">
               {p?.proveedore?.nombre || p?.proveedor?.nombre || "Sin proveedor"}
             </div>
-           <button className="btn-buy" onClick={() => handleAddToCart(p)}>
-             Añadir al carrito
+           <button
+             className="btn-buy"
+             disabled={agotado}
+             onClick={(e) => { e.stopPropagation(); !agotado && handleAddToCart(p); }}
+             title={agotado ? "Sin existencias" : "Añadir al carrito"}
+           >
+             {agotado ? "Agotado" : "Añadir al carrito"}
            </button>
           </div>
         </article>
       );
     })}
 </section>
+{detail && (
+  <div className="modal-backdrop" onClick={closeDetail}>
+    <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <button className="modal-close" onClick={closeDetail} aria-label="Cerrar">×</button>
+
+      <div className="modal-header">
+        <h2 className="modal-title">{detail.nombre}</h2>
+        <span className={`badge ${!detail.activo ? "off" : (Number(detail.existencia ?? 0) <= 0 ? "sold" : "ok")}`}>
+          {!detail.activo ? "Inactivo" : (Number(detail.existencia ?? 0) <= 0 ? "Agotado" : "Disponible")}
+        </span>
+      </div>
+
+      <div className="modal-body">
+        <p className="modal-line"><b>SKU:</b> {detail.sku || "—"}</p>
+        <p className="modal-line"><b>Categoría:</b> {detail.categoria || "—"}</p>
+        <p className="modal-line"><b>Precio:</b> {fmtQ(detail.precio_venta)}</p>
+        {isAdmin && (
+          <p className="modal-line"><b>Existencia:</b> {Number.isFinite(detail.existencia) ? detail.existencia : "—"}</p>
+        )}
+        <p className="modal-line"><b>Proveedor:</b> {detail?.proveedore?.nombre || detail?.proveedor?.nombre || "Sin proveedor"}</p>
+
+        <div className="modal-desc">
+          {detail.descripcion && detail.descripcion.trim() !== "" ? detail.descripcion : "Sin descripción."}
+        </div>
+      </div>
+
+      <div className="modal-actions">
+        {!Number(detail.existencia ?? 0) <= 0 && (
+          <button className="btn-buy" onClick={(e) => { e.stopPropagation(); handleAddToCart(detail); }}>
+            Añadir al carrito
+          </button>
+        )}
+        <button className="btn-out" onClick={closeDetail}>Cerrar</button>
+      </div>
+    </div>
+  </div>
+)}
+
       </main>
 
       {/* CSS */}
@@ -397,7 +449,7 @@ const handleAddToCart = (p) => {
           border:1px solid rgba(255,255,255,.16);
         }
         .badge.ok{ background:rgba(21, 199, 151,.14); color:#aef8de; border-color:rgba(21,199,151,.28); }
-        .badge.off{ background:rgba(199, 64, 64,.14); color:#ffd0d0; border-color:rgba(199,64,64,.28); }
+        .badge.sold{ background:rgba(217, 154, 0,.14); color:#ffe9b3; border-color:rgba(217,154,0,.28); }
 
         .sku{ opacity:.75; font-size:12px; }
         .row2{ display:flex; align-items:end; justify-content:space-between; gap:10px; }
@@ -418,6 +470,14 @@ const handleAddToCart = (p) => {
           color:#041014;
         }
         .btn-buy:hover{ filter:brightness(1.05); }
+         .btn-buy:disabled{
+          opacity:.6;
+          filter:grayscale(100%);
+          cursor:not-allowed;
+          background: rgba(255,255,255,.08);
+          color:#9fb3bf;
+        }
+        .btn-buy:disabled:hover{ filter:none; }
 
         .info, .error{
           grid-column: 1 / -1;
@@ -427,23 +487,78 @@ const handleAddToCart = (p) => {
         }
         .error{ border-color: rgba(255, 135, 135, .35); color:#ffd0d0; }
         .btn-cart{
-  position: relative;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,.15);
-  color:#dbe7ee;
-  border-radius:10px;
-  padding:8px 12px;
-  cursor:pointer;
-  font-size:16px;
-}
-.btn-cart:hover{ background: rgba(255,255,255,.06); }
-.cart-badge{
-  position:absolute; top:-6px; right:-6px;
-  min-width:18px; height:18px; border-radius:999px;
-  font-size:11px; font-weight:800; line-height:18px;
-  text-align:center; background:#06b6d4; color:#041014;
-  padding:0 4px;
-}
+        position: relative;
+        background: transparent;
+        border: 1px solid rgba(255,255,255,.15);
+        color:#dbe7ee;
+        border-radius:10px;
+        padding:8px 12px;
+        cursor:pointer;
+        font-size:16px;
+      }
+      .btn-cart:hover{ background: rgba(255,255,255,.06); }
+      .cart-badge{
+        position:absolute; top:-6px; right:-6px;
+        min-width:18px; height:18px; border-radius:999px;
+        font-size:11px; font-weight:800; line-height:18px;
+        text-align:center; background:#06b6d4; color:#041014;
+        padding:0 4px;
+      }
+        .modal-backdrop{
+        position:fixed; inset:0; z-index:50;
+        background:rgba(0,0,0,.55);
+        display:grid; place-items:center;
+        padding:20px;
+      }
+      .modal{
+        width:min(780px, 96vw);
+        background: rgba(15,23,30,.98);
+        border:1px solid rgba(255,255,255,.08);
+        border-radius:16px;
+        box-shadow: 0 30px 80px rgba(0,0,0,.45);
+        padding:18px 18px 16px;
+      }
+      .modal-close{
+        position:absolute; margin:8px; right:10px;
+        background:transparent; border:1px solid rgba(255,255,255,.2);
+        color:#dbe7ee; width:32px; height:32px; border-radius:8px; cursor:pointer;
+      }
+      .modal-close:hover{ background:rgba(255,255,255,.08); }
+      .modal-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+       .modal-title{
+        margin:0;
+        font-size:22px;
+        font-weight:900;
+        letter-spacing:.3px;
+        /* brillo + shimmer en el texto */
+        background: linear-gradient(90deg, #e6fbff, #8eeaff, #e6fbff);
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+        text-shadow: 0 0 10px rgba(6,182,212,.35), 0 0 28px rgba(14,165,164,.22);
+        animation: glowTitle 3.2s linear infinite;
+      }
+      .modal-body{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+      .modal-line{ margin:0; font-size:14px; opacity:.95; }
+      .modal-desc{
+        margin-top:10px; padding:12px; border-radius:12px;
+        background: rgba(255,255,255,.04);
+        border:1px solid rgba(255,255,255,.08);
+        line-height:1.45;
+      }
+      .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+      @keyframes glowTitle{
+        0%   { background-position:   0% 50%; text-shadow: 0 0 8px  rgba(6,182,212,.28), 0 0 18px rgba(14,165,164,.16); }
+        50%  { background-position: 200% 50%; text-shadow: 0 0 16px rgba(6,182,212,.55), 0 0 36px rgba(14,165,164,.32); }
+        100% { background-position:   0% 50%; text-shadow: 0 0 8px  rgba(6,182,212,.28), 0 0 18px rgba(14,165,164,.16); }
+      }
+
+      @media (prefers-reduced-motion: reduce){
+        .modal-title{ animation: none; }
+      }
+
 
       `}</style>
     </div>
