@@ -78,13 +78,6 @@ const handleDescargarFactura = async () => {
               </div>
             </div>
 
-            <div className="success-info">
-              <div className="info-row">
-                <span className="info-label">ID de sesión</span>
-                <span className="info-value">{sessionId}</span>
-              </div>
-              {/* Si luego quieres mostrar más datos (pedido, total, correo) los colocamos aquí */}
-            </div>
 
             <div className="success-buttons">
               <button className="btn-pay" onClick={handleDescargarFactura}>
