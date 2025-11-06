@@ -69,44 +69,56 @@ function renderFacturaPDF(res, payload) {
   doc.end();
 }
 
-// --- Cargar datos por session_id (soporta session.id o payment_intent) ---
+// --- Cargar datos por session_id SOLO desde BD (y opcionalmente usando payment_intent) ---
 async function loadBySession(session_id) {
-  // 1) Intento directo: asumiendo que guardaste el session.id en pagos.intento_id
+  // a) buscar por intento_id = session_id
   let pago = await Pago.findOne({
-    where: {
-      intento_id: session_id,
-      estado: { [Op.in]: ["PAGADO", "pagado"] }
-    },
+    where: { intento_id: session_id },
     include: [{
       model: Pedido,
       include: [{ model: Detalle, include: [{ model: Producto }] }]
     }]
   });
 
-  // 2) Si no hay, resuelve con Stripe para obtener payment_intent desde el session_id
+  // b) si no aparece, intentar resolver payment_intent y volver a buscar
   if (!pago) {
-    const session = await stripe.checkout.sessions.retrieve(session_id);
-    const pi = session?.payment_intent?.toString?.() || session?.payment_intent || null;
-    if (!pi) throw new Error("No se pudo resolver payment_intent desde session_id.");
-
-    pago = await Pago.findOne({
-      where: {
-        intento_id: pi,
-        estado: { [Op.in]: ["PAGADO", "pagado"] }
-      },
-      include: [{
-        model: Pedido,
-        include: [{ model: Detalle, include: [{ model: Producto }] }]
-      }]
-    });
-
-    if (!pago) throw new Error("No se encontró el pago/factura para ese session_id.");
+    try {
+      // si tienes STRIPE_SECRET_KEY configurada, resolvemos el payment_intent
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+      const pi = session?.payment_intent?.toString?.() || session?.payment_intent || null;
+      if (pi) {
+        pago = await Pago.findOne({
+          where: { intento_id: pi },
+          include: [{
+            model: Pedido,
+            include: [{ model: Detalle, include: [{ model: Producto }] }]
+          }]
+        });
+      }
+    } catch (_e) {
+      // si Stripe falla no rompas el flujo; seguimos sin pago
+    }
   }
 
+  if (!pago) throw new Error("No se encontró el pago asociado a ese session_id.");
   if (!pago.pedido) throw new Error("El pago no tiene pedido asociado.");
 
-  // Cliente por correo si existe
-  const cliente = await Cliente.findOne({ where: { correo: pago.correo || null } }).catch(() => null);
+  // Validar estado en JS (evita tocar el enum en SQL)
+  const estado = String(pago.estado || "").toUpperCase();
+  if (estado !== "PAGADO") {
+    throw new Error(`El pago aún no está confirmado (estado: ${pago.estado}).`);
+  }
+
+  // Cliente (si existe)
+  let cliente = null;
+  try {
+    // si guardas correo en pagos:
+    if (pago.correo) cliente = await Cliente.findOne({ where: { correo: pago.correo } });
+    // o bien por usuario del pedido:
+    if (!cliente && pago.pedido?.usuario_id) {
+      cliente = await Cliente.findOne({ where: { usuario_id: pago.pedido.usuario_id } });
+    }
+  } catch(_e){}
 
   return {
     pedido: pago.pedido,
