@@ -6,6 +6,7 @@ const Pedido   = db.pedidos;
 const Detalle  = db.detalle_pedido;
 const Producto = db.productos;
 const Cliente  = db.clientes;
+const Usuario  = db.usuarios; // para traer nombre_completo
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 // const Usuario  = db.usuarios; // si luego quieres más datos
 
@@ -28,7 +29,14 @@ function renderFacturaPDF(res, payload) {
   doc.fontSize(10).text(`No. pedido: ${pedido.id}`);
   doc.text(`Fecha: ${new Date(pedido.creado_en || Date.now()).toLocaleString()}`);
   doc.moveDown(0.5);
-  doc.text(`Cliente: ${cliente?.correo || "—"}`);
+  const nombreMostrable = (
+    cliente?.usuario?.nombre_completo ||
+    cliente?.nombre ||                 // por si algún día lo agregas
+    cliente?.correo ||
+    "—"
+  );
+  doc.text(`Cliente: ${nombreMostrable}`);
+
   if (cliente?.telefono) doc.text(`Tel.: ${cliente.telefono}`);
   if (cliente?.direccion_facturacion) doc.text(`Dir. Fact.: ${cliente.direccion_facturacion}`);
   doc.moveDown();
@@ -109,16 +117,22 @@ async function loadBySession(session_id) {
     throw new Error(`El pago aún no está confirmado (estado: ${pago.estado}).`);
   }
 
-  // Cliente (si existe)
-  let cliente = null;
-  try {
-    // si guardas correo en pagos:
-    if (pago.correo) cliente = await Cliente.findOne({ where: { correo: pago.correo } });
-    // o bien por usuario del pedido:
-    if (!cliente && pago.pedido?.usuario_id) {
-      cliente = await Cliente.findOne({ where: { usuario_id: pago.pedido.usuario_id } });
-    }
-  } catch(_e){}
+    // Cliente (ligado al pedido por cliente_id; fallback por correo)
+    let cliente = null;
+    try {
+      if (pago.pedido?.cliente_id) {
+        cliente = await Cliente.findByPk(pago.pedido.cliente_id, {
+          include: [{ model: Usuario, attributes: ["id","correo","nombre_completo","rol"] }]
+        });
+      }
+      if (!cliente && pago.correo) {
+        cliente = await Cliente.findOne({
+          where: { correo: pago.correo },
+          include: [{ model: Usuario, attributes: ["id","correo","nombre_completo","rol"] }]
+        });
+      }
+    } catch(_e){}
+
 
   return {
     pedido: pago.pedido,
@@ -135,8 +149,9 @@ async function loadByPedido(pedidoId) {
   });
   if (!pedido) throw new Error("Pedido no encontrado.");
 
-  // puedes ligar cliente por usuario_id o por correo según tu modelo
-  const cliente = await Cliente.findOne({ where: { usuario_id: pedido.usuario_id } }).catch(()=>null);
+const cliente = await Cliente.findByPk(pedido.cliente_id, {
+  include: [{ model: Usuario, attributes: ["id","correo","nombre_completo","rol"] }]
+}).catch(()=>null);
 
   return { pedido, items: pedido.detalles || pedido.detalle_pedidos || [], cliente };
 }
