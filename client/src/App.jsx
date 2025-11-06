@@ -7,6 +7,8 @@ import Register from "./pages/Register";
 import Products from "./pages/Products";
 import Carrito from "./pages/Carrito.jsx";
 import PagoExitoso from "./pages/PagoExitoso";
+import Providers from './pages/Providers';
+import InventoryModal from './components/InventoryModal';
 
 const isAuthed = () => !!localStorage.getItem("token");
 
@@ -28,6 +30,7 @@ export default function App() {
   <Route path="/Register" element={<Register />} />
   <Route path="/register" element={<Register />} />
   <Route path="/products" element={<Products />} />
+  <Route path="/InventoryModal" element={<InventoryModal />} />
 
          {/* dashboard público */}
          <Route path="Dashboard" element={<Dashboard />} />
