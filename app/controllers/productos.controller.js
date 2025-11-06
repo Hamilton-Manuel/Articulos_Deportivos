@@ -1,25 +1,56 @@
 const db = require("../models");
 const Producto = db.productos;
 const Proveedor = db.proveedores;
+const Inventario = db.inventario;        // <-- NUEVO
+const sequelize = db.sequelize; 
 const Op = db.Sequelize.Op;
 
 // Create
-exports.create = (req, res) => {
-  const { sku, nombre, descripcion,categoria,proveedor_id, precio_costo, precio_venta, activo } = req.body;
-  if (!sku || !nombre || precio_costo == null || precio_venta == null) {
-    return res.status(400).send({ message: "sku, nombre, precio_costo y precio_venta son obligatorios." });
-  }
+exports.create = async (req, res) => {
+  const { sku, nombre, descripcion, categoria, proveedor_id, precio_costo, precio_venta, activo } = req.body;
+
+  try {
+    if (!sku || !nombre || precio_costo == null || precio_venta == null) {
+      return res.status(400).send({ message: "sku, nombre, precio_costo y precio_venta son obligatorios." });
+    }
+
     // Validar precios positivos
-  if (precio_costo < 0 || precio_venta < 0) {
-    return res.status(400).send({ message: "Los precios no pueden ser negativos." });
+    if (precio_costo < 0 || precio_venta < 0) {
+      return res.status(400).send({ message: "Los precios no pueden ser negativos." });
+    }
+
+    const t = await sequelize.transaction();
+
+    try {
+      // 1) Crear producto
+      const item = { sku, nombre, descripcion, categoria, proveedor_id, precio_costo, precio_venta, activo };
+      const producto = await Producto.create(item, { transaction: t, req });
+
+      // 2) Crear inventario con valores por defecto
+      //    Nota: db.Sequelize.fn('NOW') usa la hora del motor (Postgres/MySQL). 
+      //    Si tu tabla usa timestamps (createdAt/updatedAt), no necesitas pasar fecha.
+      await Inventario.create(
+        {
+          producto_id: producto.id,
+          existencias: 1,
+          minimo: 5,
+          // Descomenta la línea siguiente SOLO si tienes un campo explícito de fecha (p.ej. 'fecha' o 'creado_en'):
+          // fecha: db.Sequelize.fn('NOW'),
+        },
+        { transaction: t }
+      );
+
+      await t.commit();
+      return res.status(201).send(producto);
+    } catch (err) {
+      await t.rollback();
+      return res.status(500).send({ message: err.message });
+    }
+  } catch (outerErr) {
+    return res.status(500).send({ message: outerErr.message });
   }
-
-
-  const item = { sku, nombre, descripcion,categoria, proveedor_id, precio_costo, precio_venta, activo };
-  Producto.create(item,{ req })
-    .then(data => res.status(201).send(data))
-    .catch(err => res.status(500).send({ message: err.message }));
 };
+
 
 // Buscar todos los productos  (incluye proveedor)
 exports.findAll = (_req, res) => {
