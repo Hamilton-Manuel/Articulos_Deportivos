@@ -66,6 +66,8 @@ require("./app/routes/movimientos_inventario.routes.js")(app);
 require("./app/routes/pedidos.routes.js")(app);
 require("./app/routes/detalle_pedido.routes.js")(app);
 require("./app/routes/auth.routes.js")(app);
+require("./app/routes/facturas.routes.js")(app);
+
 
 
 require("./app/routes/pagos.routes.js")(app);
