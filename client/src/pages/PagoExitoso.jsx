@@ -21,10 +21,34 @@ export default function PagoExitoso() {
     localStorage.setItem("last_payment_cleared", String(Date.now()));
   }, [sessionId]);
 
-  const handleDescargarFactura = () => {
-    // TODO: luego llamaremos a tu endpoint para generar/descargar el PDF
-    alert("La descarga de factura estará disponible pronto.");
-  };
+const handleDescargarFactura = async () => {
+  if (!sessionId) {
+    alert("No se detectó session_id de Stripe.");
+    return;
+  }
+  const api = import.meta.env.VITE_API_URL || "";
+  const token = localStorage.getItem("token") || "";
+
+  try {
+    const url = `${api}/api/facturas/session/${encodeURIComponent(sessionId)}.pdf`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      throw new Error(j?.message || "No se pudo generar la factura.");
+    }
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `Factura_${sessionId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
 
   return (
     <div className="success-shell">
