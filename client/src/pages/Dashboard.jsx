@@ -1,6 +1,6 @@
 // client/src/pages/Dashboard.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link  } from "react-router-dom";
 import StatsCard from "../components/StatsCard";
 import ProductList from "../components/ProductList";
 import { readCart, saveCart } from "../utils/cart";
@@ -173,142 +173,156 @@ const catCounts = useMemo(() => {
         </div>
       </header>
 
-      {/* Contenido */}
-      <main className="dash-main">
-        {/* KPIs */}
-        <section className="kpis cats">
-  {CATS.map((c) => (
-    <button
-      key={c}
-      type="button"
-      className={`kpi kpi-cat ${cat === c ? "active" : ""}`}
-      onClick={() => setCat(cat === c ? null : c)}
-      title={`Ver ${c}`}
-    >
-      <div className="kpi-title">{c}</div>
-      <div className="kpi-value">{catCounts[c] || 0}</div>
-    </button>
-  ))}
+      <div className="layout">
+                {isAdmin && (
+                  <aside className="sidebar" role="navigation" aria-label="Menú de administración">
+                    <div className="side-title">Administración</div>
+                    <Link className="side-link" to="/Products">🛒🎁 Productos</Link>
+                    <Link className="side-link" to="/Providers">🏷️🚚 Proveedores</Link>
+                    <Link className="side-link" to="/InventoryModal">📦✏️ Inventarios</Link>
+                    <Link className="side-link" to="/Clientes">🚶🏻🛍️ Clientes</Link>
+                    <Link className="side-link" to="/Usuarios">👩🏻‍💻 Usuarios</Link>
+                    <Link className="side-link" to="/Reportes"> Reportes</Link>
+                    <Link className="side-link" to="/Graficas"> Graficas</Link>
+                  </aside>
+                )}
+
+                <main className="dash-main">
+                <section className="kpis cats">
+                {CATS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`kpi kpi-cat ${cat === c ? "active" : ""}`}
+                    onClick={() => setCat(cat === c ? null : c)}
+                    title={`Ver ${c}`}
+                  >
+                    <div className="kpi-title">{c}</div>
+                    <div className="kpi-value">{catCounts[c] || 0}</div>
+                  </button>
+                ))}
+                </section>
+
+                {/* Filtros */}
+                <section className="toolbar">
+                  <input
+                    className="search"
+                    placeholder="Buscar por nombre o SKU…"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                  {cat && (
+                    <span className="chip" onClick={() => setCat(null)}>
+                      {cat} ×
+                    </span>
+                  )}
+                </section>
+
+                {/* Grid */}
+                <section className="grid">
+                  {loading && <div className="info">Cargando productos…</div>}
+                  {!loading && error && <div className="error">⚠ {error}</div>}
+                  {!loading && !error && filtrados.length === 0 && (
+                    <div className="info">Sin resultados.</div>
+                  )}
+
+                  {!loading && !error &&
+            filtrados.map((p) => {
+              // ⬇️ p se define aquí como parámetro del map
+              const imgUrl = p.imagen_url || `/products/${p.sku || p.id}.jpg`;
+              const agotado = Number(p.existencia ?? 0) <= 0;
+
+              return (
+                <article key={p.id} className="card" onClick={() => openDetail(p)} role="button">
+                  <div
+                    className="thumb"
+                    style={{
+                      backgroundImage: `url(${imgUrl}), linear-gradient(135deg,#0b1620,#111a24)`,
+                    }}
+                    title={p.nombre}
+                  />
+                  <div className="card-body">
+                    <div className="row1">
+                      <h3 className="name">{p.nombre}</h3>
+                      <span className={`badge ${!p.activo ? "off" : (agotado ? "sold" : "ok")}`}>
+                        {!p.activo ? "Inactivo" : (agotado ? "Agotado" : "Disponible")}
+                      </span>
+                    </div>
+
+                    <div className="sku">SKU: {p.sku || "—"}</div>
+
+                    <div className="row2">
+                      <div className="price">
+                        <span className="lbl">Precio</span>
+                        <span className="val">{fmtQ(p.precio_venta)}</span>
+                      </div>
+                      {isAdmin && (
+                        <div className="price">
+                          <span className="lbl">Existencia</span>
+                          <span className="val">
+                            {Number.isFinite(p.existencia) ? p.existencia : "—"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="prov">
+                      {p?.proveedore?.nombre || p?.proveedor?.nombre || "Sin proveedor"}
+                    </div>
+                  <button
+                    className="btn-buy"
+                    disabled={agotado}
+                    onClick={(e) => { e.stopPropagation(); !agotado && handleAddToCart(p); }}
+                    title={agotado ? "Sin existencias" : "Añadir al carrito"}
+                  >
+                    {agotado ? "Agotado" : "Añadir al carrito"}
+                  </button>
+                  </div>
+                </article>
+              );
+            })}
         </section>
+        {detail && (
+          <div className="modal-backdrop" onClick={closeDetail}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={closeDetail} aria-label="Cerrar">×</button>
 
-        {/* Filtros */}
-        <section className="toolbar">
-          <input
-            className="search"
-            placeholder="Buscar por nombre o SKU…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          {cat && (
-            <span className="chip" onClick={() => setCat(null)}>
-              {cat} ×
-            </span>
-          )}
-        </section>
-
-        {/* Grid */}
-        <section className="grid">
-          {loading && <div className="info">Cargando productos…</div>}
-          {!loading && error && <div className="error">⚠ {error}</div>}
-          {!loading && !error && filtrados.length === 0 && (
-            <div className="info">Sin resultados.</div>
-          )}
-
-          {!loading && !error &&
-    filtrados.map((p) => {
-      // ⬇️ p se define aquí como parámetro del map
-      const imgUrl = p.imagen_url || `/products/${p.sku || p.id}.jpg`;
-      const agotado = Number(p.existencia ?? 0) <= 0;
-
-      return (
-        <article key={p.id} className="card" onClick={() => openDetail(p)} role="button">
-          <div
-            className="thumb"
-            style={{
-              backgroundImage: `url(${imgUrl}), linear-gradient(135deg,#0b1620,#111a24)`,
-            }}
-            title={p.nombre}
-          />
-          <div className="card-body">
-            <div className="row1">
-              <h3 className="name">{p.nombre}</h3>
-              <span className={`badge ${!p.activo ? "off" : (agotado ? "sold" : "ok")}`}>
-                {!p.activo ? "Inactivo" : (agotado ? "Agotado" : "Disponible")}
-              </span>
-            </div>
-
-            <div className="sku">SKU: {p.sku || "—"}</div>
-
-            <div className="row2">
-              <div className="price">
-                <span className="lbl">Precio</span>
-                <span className="val">{fmtQ(p.precio_venta)}</span>
+              <div className="modal-header">
+                <h2 className="modal-title">{detail.nombre}</h2>
+                <span className={`badge ${!detail.activo ? "off" : (Number(detail.existencia ?? 0) <= 0 ? "sold" : "ok")}`}>
+                  {!detail.activo ? "Inactivo" : (Number(detail.existencia ?? 0) <= 0 ? "Agotado" : "Disponible")}
+                </span>
               </div>
-              {isAdmin && (
-                <div className="price">
-                  <span className="lbl">Existencia</span>
-                  <span className="val">
-                    {Number.isFinite(p.existencia) ? p.existencia : "—"}
-                  </span>
+
+              <div className="modal-body">
+                <p className="modal-line"><b>SKU:</b> {detail.sku || "—"}</p>
+                <p className="modal-line"><b>Categoría:</b> {detail.categoria || "—"}</p>
+                <p className="modal-line"><b>Precio:</b> {fmtQ(detail.precio_venta)}</p>
+                {isAdmin && (
+                  <p className="modal-line"><b>Existencia:</b> {Number.isFinite(detail.existencia) ? detail.existencia : "—"}</p>
+                )}
+                <p className="modal-line"><b>Proveedor:</b> {detail?.proveedore?.nombre || detail?.proveedor?.nombre || "Sin proveedor"}</p>
+
+                <div className="modal-desc">
+                  {detail.descripcion && detail.descripcion.trim() !== "" ? detail.descripcion : "Sin descripción."}
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="prov">
-              {p?.proveedore?.nombre || p?.proveedor?.nombre || "Sin proveedor"}
+              <div className="modal-actions">
+                {!Number(detail.existencia ?? 0) <= 0 && (
+                  <button className="btn-buy" onClick={(e) => { e.stopPropagation(); handleAddToCart(detail); }}>
+                    Añadir al carrito
+                  </button>
+                )}
+                <button className="btn-out" onClick={closeDetail}>Cerrar</button>
+              </div>
             </div>
-           <button
-             className="btn-buy"
-             disabled={agotado}
-             onClick={(e) => { e.stopPropagation(); !agotado && handleAddToCart(p); }}
-             title={agotado ? "Sin existencias" : "Añadir al carrito"}
-           >
-             {agotado ? "Agotado" : "Añadir al carrito"}
-           </button>
           </div>
-        </article>
-      );
-    })}
-</section>
-{detail && (
-  <div className="modal-backdrop" onClick={closeDetail}>
-    <div className="modal" onClick={(e) => e.stopPropagation()}>
-      <button className="modal-close" onClick={closeDetail} aria-label="Cerrar">×</button>
-
-      <div className="modal-header">
-        <h2 className="modal-title">{detail.nombre}</h2>
-        <span className={`badge ${!detail.activo ? "off" : (Number(detail.existencia ?? 0) <= 0 ? "sold" : "ok")}`}>
-          {!detail.activo ? "Inactivo" : (Number(detail.existencia ?? 0) <= 0 ? "Agotado" : "Disponible")}
-        </span>
-      </div>
-
-      <div className="modal-body">
-        <p className="modal-line"><b>SKU:</b> {detail.sku || "—"}</p>
-        <p className="modal-line"><b>Categoría:</b> {detail.categoria || "—"}</p>
-        <p className="modal-line"><b>Precio:</b> {fmtQ(detail.precio_venta)}</p>
-        {isAdmin && (
-          <p className="modal-line"><b>Existencia:</b> {Number.isFinite(detail.existencia) ? detail.existencia : "—"}</p>
         )}
-        <p className="modal-line"><b>Proveedor:</b> {detail?.proveedore?.nombre || detail?.proveedor?.nombre || "Sin proveedor"}</p>
-
-        <div className="modal-desc">
-          {detail.descripcion && detail.descripcion.trim() !== "" ? detail.descripcion : "Sin descripción."}
-        </div>
-      </div>
-
-      <div className="modal-actions">
-        {!Number(detail.existencia ?? 0) <= 0 && (
-          <button className="btn-buy" onClick={(e) => { e.stopPropagation(); handleAddToCart(detail); }}>
-            Añadir al carrito
-          </button>
-        )}
-        <button className="btn-out" onClick={closeDetail}>Cerrar</button>
-      </div>
-    </div>
-  </div>
-)}
 
       </main>
+    </div> {/* .layout */}
+
 
       {/* CSS */}
       <style>{`
@@ -558,6 +572,67 @@ const catCounts = useMemo(() => {
       @media (prefers-reduced-motion: reduce){
         .modal-title{ animation: none; }
       }
+
+        .layout{
+          display:flex;
+          gap:12px;
+          align-items:flex-start;
+        }
+
+        /* Sidebar admin */
+        .sidebar{
+          position:sticky;
+          top:76px; /* debajo del topbar */
+          width:260px;
+          min-width:240px;
+          height:calc(100vh - 110px);
+          overflow:auto;
+          padding:12px;
+          border-radius:14px;
+          background: rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.06);
+          backdrop-filter: blur(6px);
+        }
+
+        .side-title{
+          font-weight:800;
+          font-size:13px;
+          opacity:.85;
+          margin:4px 6px 10px;
+          letter-spacing:.3px;
+        }
+
+        .side-link{
+          display:flex;
+          align-items:center;
+          gap:8px;
+          padding:10px 12px;
+          margin:6px;
+          border-radius:10px;
+          text-decoration:none;
+          color:#e9f1f6;
+          background: rgba(255,255,255,.02);
+          border:1px solid rgba(255,255,255,.06);
+          transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background-color .12s ease;
+        }
+        .side-link:hover{
+          background: rgba(255,255,255,.12);
+          border-color: rgba(33,193,209,.35);
+          box-shadow: 0 10px 26px rgba(0,0,0,.25);
+          transform: translateX(2px);
+        }
+
+        /* Que el main ocupe el resto del ancho */
+        .layout .dash-main{
+          flex:1;
+          max-width:100%;
+          margin:0;
+        }
+
+        /* Ocultar sidebar en pantallas pequeñas */
+        @media (max-width: 1024px){
+          .sidebar{ display:none; }
+        }
 
 
       `}</style>

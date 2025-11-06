@@ -1,0 +1,196 @@
+/* ===== THEME / BASE ===== */
+:root { color-scheme: dark; }
+:root{
+  --bg1:#12202b; --bg2:#0b1115; --bg3:#091016;
+  --text-1:#e9f1f6; --text-2:rgba(233,241,246,.8);
+  --surface:rgba(255,255,255,.04); --surface-2:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.10); --border-2:rgba(255,255,255,.16);
+  --brand-1:#06b6d4; --brand-2:#0ea5a4;
+}
+
+/* Fondo y color como dashboard */
+.usuarios-shell{
+  min-height:100vh;
+  background: radial-gradient(1200px 800px at 20% -10%, var(--bg1) 0%, var(--bg2) 35%, var(--bg3) 100%);
+  color: var(--text-1);
+}
+
+/* Contenido centrado como .dash-main */
+.usuarios-main{
+  padding: 12px 22px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ===== TÍTULO ===== */
+.usuarios-title{
+  margin: 10px 0 14px;
+  font-size: 26px; font-weight: 900; letter-spacing:.3px;
+  background: linear-gradient(90deg,#e6fbff,#8eeaff,#e6fbff);
+  background-size:200% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: 0 0 10px rgba(6,182,212,.35), 0 0 28px rgba(14,165,164,.22);
+}
+
+/* ===== CAJA FORM ===== */
+.u-form{
+  margin-bottom: 20px;
+  background: var(--surface);
+  border:1px solid var(--surface-2);
+  backdrop-filter: blur(6px);
+  border-radius:14px;
+  padding:14px;
+}
+
+/* Grid del form (tu JSX ya usa grid 2 col) */
+.u-form .grid-2{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap:12px; align-items:start;
+}
+
+/* Labels legibles */
+.u-form label{
+  display:block; margin-bottom:6px;
+  font-size:12px; text-transform:uppercase; letter-spacing:.5px; opacity:.9;
+}
+
+/* Inputs como .search del dashboard, pero para todos */
+.u-form input[type="text"],
+.u-form input[type="email"],
+.u-form input[type="password"],
+.u-form select,
+.u-form textarea{
+  width:100%;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  color:#fff; outline:none;
+  padding:10px 12px; border-radius:12px; font-size:14px;
+  transition:border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.u-form textarea{ resize:vertical; min-height:96px; }
+.u-form input:focus,
+.u-form select:focus,
+.u-form textarea:focus{
+  border-color:#21c1d1; box-shadow:0 0 0 3px rgba(33,193,209,.18);
+  background: rgba(255,255,255,.10);
+}
+
+/* Checkbox en línea */
+.u-inline{ display:flex; align-items:center; gap:8px; }
+
+/* ===== BOTONES ===== */
+.btn{ 
+  border:1px solid var(--border-2);
+  background:transparent; color:var(--text-1);
+  border-radius:12px; padding:8px 14px; cursor:pointer;
+  transition:background .15s ease, transform .05s ease;
+  font-weight:800;
+}
+.btn:hover{ background: rgba(255,255,255,.06); }
+.btn:active{ transform: translateY(1px); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; filter:grayscale(20%); }
+
+.btn-primary{
+  background: linear-gradient(90deg,var(--brand-1),var(--brand-2));
+  border:none; color:#041014;
+}
+.btn-danger{
+  background: rgba(231,76,60,.12);
+  border:1px solid rgba(231,76,60,.45);
+  color:#ffdada;
+}
+.btn-danger:hover{ background: rgba(231,76,60,.18); }
+
+/* ===== BUSCADOR ===== */
+.u-search{
+  display:flex; gap:8px; margin: 0 0 10px;
+}
+.u-search .search{
+  flex:1; padding:12px 14px; border-radius:12px;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  color:#fff; outline:none; font-size:14px;
+}
+.u-search .search:focus{ border-color:#21c1d1; box-shadow:0 0 0 3px rgba(33,193,209,.18); }
+
+/* ===== TABLA ===== */
+.u-table{
+  width:100%; border-collapse:collapse; min-width:880px;
+  background: var(--surface);
+  border:1px solid var(--surface-2);
+  border-radius:14px; overflow:hidden;
+}
+.u-table thead th{
+  text-align:left; font-size:12px; text-transform:uppercase;
+  letter-spacing:.6px; opacity:.95; background: rgba(255,255,255,.06);
+}
+.u-table th, .u-table td{ padding:12px 14px; border-top:1px solid var(--border); }
+.u-table tbody tr{ transition: background-color .15s ease; }
+.u-table tbody tr:hover{ background: rgba(255,255,255,.06); }
+
+/* Píldoras de rol opcionales */
+.role-badge{
+  display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px;
+  border:1px solid var(--border-2); background: rgba(255,255,255,.04);
+}
+.role-badge.admin{ border-color: rgba(6,182,212,.5); box-shadow: inset 0 0 12px rgba(6,182,212,.15); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 720px){
+  .u-table thead{ display:none; }
+  .u-table, .u-table tbody, .u-table tr, .u-table td{ display:block; width:100%; }
+  .u-table tr{ border-top:1px solid var(--border); padding:10px 12px; }
+  .u-table td{ border:none; padding:8px 0; }
+  .u-table td::before{
+    content: attr(data-label);
+    display:block; font-size:11px; opacity:.75;
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;
+  }
+}
+/* ===== CABECERA CON ACCIONES ===== */
+.u-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin: 6px 0 12px;
+}
+.u-head-actions{ display:flex; align-items:center; gap:8px; }
+.u-head .ico-home{ width:18px; height:18px; }
+/* ===== SELECT oscuro con flecha personalizada ===== */
+.u-form select{
+  /* base */
+  background-color: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  color: #e9f1f6;
+
+  /* quitar UI nativa */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* espacio para la flecha */
+  padding-right: 38px;
+
+  /* flecha (SVG inline) */
+  background-image: url("data:image/svg+xml;utf8,\
+  <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23e9f1f6'>\
+    <path d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.17l3.71-2.94a.75.75 0 1 1 .94 1.16l-4.24 3.36a.75.75 0 0 1-.94 0L5.21 8.39a.75.75 0 0 1 .02-1.18z'/>\
+  </svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.u-form select:focus{
+  border-color:#21c1d1;
+  box-shadow:0 0 0 3px rgba(33,193,209,.18);
+  background-color: rgba(255,255,255,.10);
+}
+
+/* Ocultar flecha de IE/Edge clásico */
+.u-form select::-ms-expand{ display:none; }
+
+/* Color del menú desplegable (algunas UAs usan fondo blanco por defecto) */
+.u-form select option{
+  background-color:#141726;
+  color:#e7e9f0;
+}

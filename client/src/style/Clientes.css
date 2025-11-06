@@ -1,0 +1,153 @@
+/* ===== THEME BASE ===== */
+:root { color-scheme: dark; }
+:root{
+  --bg1:#12202b; --bg2:#0b1115; --bg3:#091016;
+  --text-1:#e9f1f6; --text-2:rgba(233,241,246,.8);
+  --surface:rgba(255,255,255,.04); --surface-2:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.10); --border-2:rgba(255,255,255,.16);
+  --brand-1:#06b6d4; --brand-2:#0ea5a4;
+}
+
+/* ===== CONTENEDOR DE LA PÁGINA ===== */
+.clientes-page{
+  min-height:100vh;
+  background: radial-gradient(1200px 800px at 20% -10%, var(--bg1) 0%, var(--bg2) 35%, var(--bg3) 100%);
+  color: var(--text-1);
+  padding: 12px 22px 32px;  /* tu inline puede quedarse, esto lo mejora */
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ===== TÍTULO ===== */
+.clientes-page h2{
+  margin: 8px 0 14px;
+  font-size: 26px; font-weight: 900; letter-spacing:.3px;
+  background: linear-gradient(90deg,#e6fbff,#8eeaff,#e6fbff);
+  background-size:200% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: 0 0 10px rgba(6,182,212,.35), 0 0 28px rgba(14,165,164,.22);
+}
+
+/* ===== MENSAJE (si dejas inline, esto no estorba) ===== */
+.clientes-msg{
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border:1px solid var(--surface-2);
+  border-radius:12px;
+  background: var(--surface);
+  color: var(--text-2);
+}
+
+/* ===== FORM ===== */
+.clientes-form{
+  margin-bottom:20px;
+  background: var(--surface);
+  border:1px solid var(--surface-2);
+  backdrop-filter: blur(6px);
+  border-radius:14px;
+  padding:14px;
+}
+.clientes-form label{
+  display:block; margin-bottom:6px;
+  font-size:12px; text-transform:uppercase; letter-spacing:.5px; opacity:.9;
+}
+
+/* Inputs del form */
+.clientes-form .input,
+.clientes-form input[type="text"],
+.clientes-form input[type="email"],
+.clientes-form textarea{
+  width:100%;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  color:#fff; outline:none;
+  padding:10px 12px; border-radius:12px; font-size:14px;
+  transition:border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+.clientes-form textarea{ resize: vertical; min-height: 96px; }
+
+.clientes-form .input:focus,
+.clientes-form input:focus,
+.clientes-form textarea:focus{
+  border-color:#21c1d1; box-shadow:0 0 0 3px rgba(33,193,209,.18);
+  background: rgba(255,255,255,.10);
+}
+.clientes-form .input[disabled],
+.clientes-form input[disabled],
+.clientes-form textarea[disabled]{
+  opacity:.8; cursor:not-allowed; filter:grayscale(10%);
+}
+
+/* ===== BOTONES ===== */
+.btn{
+  border:1px solid var(--border-2);
+  background:transparent; color:var(--text-1);
+  border-radius:12px; padding:8px 14px; cursor:pointer;
+  transition:background .15s ease, transform .05s ease;
+  font-weight:800;
+}
+.btn:hover{ background: rgba(255,255,255,.06); }
+.btn:active{ transform: translateY(1px); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; filter:grayscale(20%); }
+
+.btn-primary{
+  background: linear-gradient(90deg,var(--brand-1),var(--brand-2));
+  border:none; color:#041014;
+}
+.btn-danger{
+  background: rgba(231,76,60,.12);
+  border:1px solid rgba(231,76,60,.45);
+  color:#ffdada;
+}
+.btn-danger:hover{ background: rgba(231,76,60,.18); }
+
+/* ===== BUSCADOR ===== */
+.clientes-page .search{
+  flex:1; padding:12px 14px; border-radius:12px;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  color:#fff; outline:none; font-size:14px;
+}
+.clientes-page .search:focus{
+  border-color:#21c1d1; box-shadow:0 0 0 3px rgba(33,193,209,.18);
+}
+
+/* Si decides envolver el buscador en un contenedor */
+.c-searchbar{ display:flex; gap:8px; margin-bottom:10px; }
+
+/* ===== TABLA ===== */
+.tbl{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+  background: var(--surface);
+  border:1px solid var(--surface-2);
+  border-radius:14px; overflow:hidden;
+}
+.tbl thead th{
+  text-align:left; font-size:12px; text-transform:uppercase;
+  letter-spacing:.6px; opacity:.95; background: rgba(255,255,255,.06);
+}
+.tbl th, .tbl td{ padding:12px 14px; border-top:1px solid var(--border); }
+.tbl tbody tr{ transition: background-color .15s ease; }
+.tbl tbody tr:hover{ background: rgba(255,255,255,.06); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 720px){
+  .tbl thead{ display:none; }
+  .tbl, .tbl tbody, .tbl tr, .tbl td{ display:block; width:100%; }
+  .tbl tr{ border-top:1px solid var(--border); padding:10px 12px; }
+  .tbl td{ border:none; padding:8px 0; }
+  .tbl td::before{
+    content: attr(data-label);
+    display:block; font-size:11px; opacity:.75;
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;
+  }
+}
+/* ===== CABECERA CON ACCIONES ===== */
+.c-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin:6px 0 12px;
+}
+.c-head-actions{ display:flex; align-items:center; gap:8px; }
+.c-head .ico-home{ width:18px; height:18px; }

@@ -1,0 +1,10 @@
+/* Columna ID (Reporte de ventas) */
+.u-table .col-id {
+  min-width: 320px;       /* más espacio para el UUID */
+  max-width: 420px;       /* opcional: evita crecer demasiado */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  letter-spacing: .2px;
+}
