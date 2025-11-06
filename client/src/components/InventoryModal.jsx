@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import "../style/Inventory.css";
 
 export default function Inventory() {
   const [productos, setProductos] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [saving, setSaving] = useState(null);
   const navigate = useNavigate();
+  const [cantidadRestar, setCantidadRestar] = useState('');
+
 
   useEffect(() => {
     if (!localStorage.getItem("token")) {
@@ -95,7 +100,7 @@ export default function Inventory() {
       
       const nuevaExistencia = producto.existencias + producto.cantidadAgregar;
       
-      const res = await fetch(`${base}/api/inventario/update`, {
+      const res = await fetch(`${base}/api/inventario/update/${producto.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -116,7 +121,7 @@ export default function Inventory() {
           ? { 
               ...p, 
               existencias: nuevaExistencia,
-              cantidadAgregar: 0
+              cantidadAgregar: "0"
             }
           : p
       ));
@@ -140,6 +145,7 @@ export default function Inventory() {
   }
 
   return (
+
     <div className="products-page">
       <header className="products-header">
         <div>
@@ -154,6 +160,85 @@ export default function Inventory() {
             ← Volver al Dashboard
           </button>
         </div>
+        {showModal && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h2>Modificar Existencia</h2>
+      <p style={{ marginBottom: '1rem', opacity: 0.8 }}>
+        Producto: <strong>{productoSeleccionado?.nombre}</strong>
+      </p>
+
+                <input
+            type="number"
+            className="modal-input"
+            placeholder="Cantidad a restar"
+            value={cantidadRestar}
+            onChange={(e) => setCantidadRestar(e.target.value)}
+            min="0"
+            />
+
+      <div className="modal-actions">
+        <button 
+          className="modal-btn cancel"
+          onClick={() => setShowModal(false)}
+        >
+          Cancelar
+        </button>
+        <button 
+  className="modal-btn confirm"
+  onClick={async () => {
+    if (!cantidadRestar || cantidadRestar <= 0) {
+      alert('⚠️ Ingrese una cantidad válida');
+      return;
+    }
+
+    try {
+      const base = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
+      // Calcula la nueva existencia restando la cantidad indicada
+      const nuevaExistencia = Math.max(
+        (productoSeleccionado.existencias || 0) - parseInt(cantidadRestar, 10),
+        0
+      );
+
+      const response = await fetch(`${base}/api/inventario/update/${productoSeleccionado.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({
+          producto_id: productoSeleccionado.id,
+          existencias: nuevaExistencia,
+          minimo: productoSeleccionado.minimo
+        })
+      });
+
+      if (!response.ok) throw new Error("Error al actualizar inventario");
+
+      alert('✅ Inventario actualizado correctamente');
+      setShowModal(false);
+      setCantidadRestar('');
+
+      // 🔁 Refresca la lista principal (usa tu función real)
+      if (typeof loadProducts === 'function') {
+        await loadProducts();
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error de conexión con el servidor');
+    }
+  }}
+>
+  Confirmar
+</button>
+
+      </div>
+    </div>
+  </div>
+)}
+
       </header>
 
       <div className="products-filters">
@@ -239,11 +324,11 @@ export default function Inventory() {
                     </label>
                     <input
                       type="number"
-                      min="0"
+                      min=""
                       value={producto.cantidadAgregar}
                       onChange={(e) => handleCantidadChange(producto.id, e.target.value)}
                       className="form-input"
-                      placeholder="0"
+                      placeholder=""
                       style={{ width: '100%', textAlign: 'center' }}
                     />
                   </div>
@@ -259,6 +344,18 @@ export default function Inventory() {
                   >
                     {saving === producto.id ? '⏳ Guardando...' : '✓ Agregar al Inventario'}
                   </button>
+                    <button
+                    className="btn btn-outline"
+                    style={{ width: '100%', marginTop: '0.6rem' }}
+                    onClick={() => {
+                        setProductoSeleccionado(producto);
+                        setShowModal(true);
+                    }}
+                    >
+                    ✏️ Modificar Existencia
+                    </button>
+                    
+
                 </div>
               </div>
             );
