@@ -168,4 +168,9 @@ body { margin: 0; }
 .modal-actions{
   margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px;
 }
+.btn-home .ico-home {
+  width: 32px;
+  height: 32px;
+  vertical-align: -4px;
+}
 

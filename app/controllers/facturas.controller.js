@@ -44,26 +44,34 @@ function renderFacturaPDF(res, payload) {
     }
   } catch (_) {}
 
-  // Marca y metadatos
-  doc
-    .fillColor(BRAND.dark)
-    .font("Helvetica-Bold")
-    .fontSize(20)
-    .text("RabiSport", X + 60, Y + 12);
+// Marca y metadatos
+doc
+  .fillColor(BRAND.dark)
+  .font("Helvetica-Bold")
+  .fontSize(20)
+  .text("RabiSport", X + 60, Y + 12);
 
-  doc
-    .font("Helvetica")
-    .fontSize(10)
-    .fillColor(BRAND.gray)
-    .text("Factura", X + 60, Y + 36);
+doc
+  .font("Helvetica")
+  .fontSize(10)
+  .fillColor(BRAND.gray)
+  .text("Factura", X + 60, Y + 36);
 
-  doc.fillColor(BRAND.dark).fontSize(10);
-  doc.text(`No. pedido: ${pedido.id}`, X + 340, Y + 12);
-  doc.text(
-    `Fecha: ${new Date(pedido.creado_en || Date.now()).toLocaleString()}`,
-    X + 340,
-    Y + 26
-  );
+// Columna derecha anclada ~58% del ancho, para que no envuelva
+doc.fillColor(BRAND.dark).fontSize(10);
+const rColX = X + Math.floor(W * 0.58);
+
+doc.text(`No. factura: ${pedido.id}`, rColX, Y + 12, {
+  width: W - (rColX - X) - 10,
+  align: "left"
+});
+doc.text(
+  `Fecha: ${new Date(pedido.creado_en || Date.now()).toLocaleString()}`,
+  rColX,
+  Y + 26,
+  { width: W - (rColX - X) - 10, align: "left" }
+);
+
 
   // --------- Caja de cliente
   const nombreMostrable =

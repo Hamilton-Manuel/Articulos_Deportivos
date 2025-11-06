@@ -93,9 +93,26 @@ const handleDescargarFactura = async () => {
               <Link className="btn-clear" to="/dashboard" replace="true">
                 Ir al dashboard
               </Link>
-              <Link className="btn-out" to="/products">
+              <Link className="btn-out btn-home" to="/dashboard" replace aria-label="Ir al dashboard">
+                <svg
+                  className="ico-home"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  width="32"
+                  height="32"
+                  style={{ marginRight: 8 }}
+                >
+                  <path d="M3 10.5L12 3l9 7.5" />
+                  <path d="M5 10v10h5v-6h4v6h5V10" />
+                </svg>
                 Seguir comprando
               </Link>
+
             </div>
           </section>
         ) : (
