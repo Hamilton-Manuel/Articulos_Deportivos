@@ -1,11 +1,12 @@
 const PDFDocument = require("pdfkit");
 const db = require("../models");
-
+const { Op } = db.Sequelize;
 const Pago     = db.pagos;
 const Pedido   = db.pedidos;
 const Detalle  = db.detalle_pedido;
 const Producto = db.productos;
 const Cliente  = db.clientes;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 // const Usuario  = db.usuarios; // si luego quieres más datos
 
 // --- Util: armar PDF básico ---
@@ -68,22 +69,44 @@ function renderFacturaPDF(res, payload) {
   doc.end();
 }
 
-// --- Cargar datos por session_id (Stripe) ---
+// --- Cargar datos por session_id (soporta session.id o payment_intent) ---
 async function loadBySession(session_id) {
-  // Tu flujo guarda el session_id en pagos.intento_id y luego marca estado='pagado'
-  const pago = await Pago.findOne({
-    where: { intento_id: session_id, estado: "pagado" },
+  // 1) Intento directo: asumiendo que guardaste el session.id en pagos.intento_id
+  let pago = await Pago.findOne({
+    where: {
+      intento_id: session_id,
+      estado: { [Op.in]: ["PAGADO", "pagado"] }
+    },
     include: [{
       model: Pedido,
       include: [{ model: Detalle, include: [{ model: Producto }] }]
     }]
   });
 
-  if (!pago || !pago.pedido) throw new Error("No se encontró el pago/pedido para ese session_id.");
+  // 2) Si no hay, resuelve con Stripe para obtener payment_intent desde el session_id
+  if (!pago) {
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    const pi = session?.payment_intent?.toString?.() || session?.payment_intent || null;
+    if (!pi) throw new Error("No se pudo resolver payment_intent desde session_id.");
 
-  // Cliente por correo (si existe en tu tabla clientes)
-  const cliente = await Cliente.findOne({ where: { correo: pago.correo || null } })
-                    .catch(() => null);
+    pago = await Pago.findOne({
+      where: {
+        intento_id: pi,
+        estado: { [Op.in]: ["PAGADO", "pagado"] }
+      },
+      include: [{
+        model: Pedido,
+        include: [{ model: Detalle, include: [{ model: Producto }] }]
+      }]
+    });
+
+    if (!pago) throw new Error("No se encontró el pago/factura para ese session_id.");
+  }
+
+  if (!pago.pedido) throw new Error("El pago no tiene pedido asociado.");
+
+  // Cliente por correo si existe
+  const cliente = await Cliente.findOne({ where: { correo: pago.correo || null } }).catch(() => null);
 
   return {
     pedido: pago.pedido,
@@ -91,6 +114,7 @@ async function loadBySession(session_id) {
     cliente: cliente || { correo: pago.correo || "" }
   };
 }
+
 
 // --- Cargar datos por id de pedido ---
 async function loadByPedido(pedidoId) {
