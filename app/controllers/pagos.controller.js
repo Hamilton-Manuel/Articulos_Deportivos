@@ -81,7 +81,7 @@ exports.checkoutStripe = async (req, res) => {
     const line_items = detalles.map(d => ({
       quantity: d.cantidad,
       price_data: {
-        currency: "usd",
+        currency: "gtq",
         product_data: {
           name: d.producto?.nombre || "Producto",
           metadata: { producto_id: d.producto_id }
@@ -108,7 +108,7 @@ exports.checkoutStripe = async (req, res) => {
       proveedor_pago: "stripe",
       intento_id: session.id,
       monto: pedido.total,
-      moneda: "USD",
+      moneda: "GTQ",
       estado: "REQUIERE_PAGO"
     });
 
