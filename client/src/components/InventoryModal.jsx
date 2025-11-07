@@ -227,7 +227,7 @@ export default function Inventory() {
 
     } catch (error) {
       console.error('Error:', error);
-      alert('❌ Error de conexión con el servidor');
+      alert('❌ No puedes rebajar a 0 un inventario');
     }
   }}
 >
