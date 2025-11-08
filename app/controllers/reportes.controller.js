@@ -9,12 +9,12 @@ const Producto = db.productos;
 const Cliente  = db.clientes;
 const Usuario  = db.usuarios;
 
-/* Util: rango de fecha día completo [00:00, 23:59:59.999) */
-function rangoDia(fechaStr) {
-  // fechaStr esperado "YYYY-MM-DD"
+/* Util: rango del día LOCAL Guatemala (UTC-6) expresado en UTC [ini, fin) */
+function rangoDiaGT(fechaStr) {
   const [y, m, d] = (fechaStr || "").split("-").map(Number);
-  const ini = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 0, 0, 0, 0));
-  const fin = new Date(ini); fin.setUTCDate(fin.getUTCDate() + 1);
+  // 00:00 GT = 06:00 UTC (sin DST en GT)
+  const ini = new Date(Date.UTC(y, (m || 1) - 1, d || 1, 6, 0, 0, 0));
+  const fin = new Date(ini); fin.setUTCHours(fin.getUTCHours() + 24);
   return { ini, fin };
 }
 
@@ -29,37 +29,38 @@ exports.ventas = async (req, res) => {
     let ini, fin;
 
     if (strIni && strFin) {
-      ini = new Date(`${strIni}T00:00:00.000Z`);
-      fin = new Date(`${strFin}T00:00:00.000Z`); fin.setUTCDate(fin.getUTCDate() + 1);
+      const a = rangoDiaGT(strIni);
+      const b = rangoDiaGT(strFin);
+      ini = a.ini;
+      fin = b.fin; // cubrir ambos días completos en GT
     } else if (strFecha) {
-      ({ ini, fin } = rangoDia(strFecha));
+      ({ ini, fin } = rangoDiaGT(strFecha));
     } else {
-      // por defecto: hoy (UTC)
+      // por defecto: hoy en GT -> rango en UTC
       const hoy = new Date();
-      const yyyy = hoy.getUTCFullYear();
-      const mm   = String(hoy.getUTCMonth() + 1).padStart(2, "0");
-      const dd   = String(hoy.getUTCDate()).padStart(2, "0");
-      ({ ini, fin } = rangoDia(`${yyyy}-${mm}-${dd}`));
+      const yyyy = hoy.getFullYear();
+      const mm   = String(hoy.getMonth() + 1).padStart(2, "0");
+      const dd   = String(hoy.getDate()).padStart(2, "0");
+      ({ ini, fin } = rangoDiaGT(`${yyyy}-${mm}-${dd}`));
     }
 
-    // Traer pagos PAGADOS con su pedido del rango, y detalles+productos y cliente+usuario
+    // Pagos PAGADOS dentro del rango (por fecha de PAGO), con su pedido+detalles+cliente
     const pagos = await Pago.findAll({
-      where: { estado: "PAGADO" },
+      where: {
+        estado: "PAGADO",
+        creado_en: { [Op.gte]: ini, [Op.lt]: fin }, // rango sobre FECHA DEL PAGO (UTC)
+      },
       include: [
         {
           model: Pedido,
           required: true,
-          where: {
-            // usamos la fecha del pedido para el rango
-            creado_en: { [Op.gte]: ini, [Op.lt]: fin },
-          },
           include: [
             { model: Detalle, include: [{ model: Producto }] },
             { model: Cliente, include: [{ model: Usuario, attributes: ["id","correo","nombre_completo","rol"] }] }
           ]
         }
       ],
-      order: [[{ model: Pedido }, "creado_en", "ASC"]]
+      order: [["creado_en", "ASC"]] // ordenar por FECHA DEL PAGO
     });
 
     // Armar filas resumidas por pedido
@@ -94,13 +95,13 @@ exports.ventas = async (req, res) => {
         p.correo || "—";
 
       rows.push({
-        pedido_id   : ped.id,
-        pago_id     : p.id,
-        fecha       : ped.creado_en,
-        cliente     : nombreCliente,
-        correo      : cli?.usuario?.correo || cli?.correo || p.correo || "",
-        items       : cnt,
-        total       : Number(suma.toFixed(2)),
+        pedido_id : ped.id,
+        pago_id   : p.id,
+        fecha     : p.creado_en, // ⬅️ FECHA DEL PAGO (la que se filtró)
+        cliente   : nombreCliente,
+        correo    : cli?.usuario?.correo || cli?.correo || p.correo || "",
+        items     : cnt,
+        total     : Number(suma.toFixed(2)),
       });
     }
 
@@ -159,7 +160,6 @@ exports.topProductos = async (req, res) => {
 
 // GET /api/reportes/top-usuarios?limit=5
 // Suma monto e ítems por usuario considerando SOLO pedidos PAGADOS
-// --- TOP USUARIOS (desde pagos PAGADOS) ---
 exports.topUsuarios = async (req, res) => {
   try {
     const intLimit = Math.max(1, parseInt(req.query.limit || "5", 10));
